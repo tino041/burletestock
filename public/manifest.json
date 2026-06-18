@@ -1,0 +1,9 @@
+{
+  "short_name": "BurleteStock",
+  "name": "BurleteStock - Control de inventario",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a5c2e",
+  "background_color": "#f0f4f1",
+  "orientation": "portrait"
+}
