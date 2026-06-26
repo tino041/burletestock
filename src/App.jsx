@@ -804,9 +804,6 @@ function AppMain({ usuario, onLogout }) {
         </div>
       )}
 
-        </div>
-      </div>
-
       {/* MODALES */}
       {modal?.tipo==="nuevoPedido"&&<NuevoPedidoModal insumos={insumos} clientes={clientes} clientePrefill={modal.clientePrefill} precios={precios} onConfirm={agregarPedido} onClose={()=>setModal(null)}/>}
       {modal?.tipo==="entradaInsumo"&&<EntradaInsumoModal insumos={insumos} onConfirm={async(id,cantidad)=>{
