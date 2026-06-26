@@ -21,6 +21,28 @@ async function sb(table, method="GET", body=null, query="") {
   return text ? JSON.parse(text) : null;
 }
 
+// ── AUTH ──────────────────────────────────────────────────
+async function login(email, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) return { error: data.error_description || "Email o contraseña incorrectos" };
+  return { token: data.access_token, userId: data.user?.id, email: data.user?.email };
+}
+
+async function getUsuario(email) {
+  const data = await sb("usuarios","GET",null,`?email=eq.${encodeURIComponent(email)}`);
+  return data?.[0] || null;
+}
+
+// Session helpers
+function saveSession(user) { try { localStorage.setItem("bs_user", JSON.stringify(user)); } catch(e){} }
+function loadSession() { try { const s = localStorage.getItem("bs_user"); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+function clearSession() { try { localStorage.removeItem("bs_user"); } catch(e){} }
+
 // Mapeo entre formato app ↔ Supabase
 function insumoToDb(i) {
   return { id:i.id, descripcion:i.descripcion, unidad:i.unidad, stock:i.stock, minimo:i.minimo, maximo:i.maximo, proveedor:i.proveedor, es_iman:!!i.esIman, es_perfil:!!i.esPerfil, es_manguera:!!i.esManguera, precio_por_metro:i.precioPorMetro||0, precio_dolar_por_metro:i.precioDolarPorMetro||0 };
@@ -38,8 +60,8 @@ function pedidoToDb(p) {
 function pedidoFromDb(r) {
   return { id:r.id, fecha:r.fecha, fechaEntrega:r.fecha_entrega, clienteId:r.cliente_id, cliente:r.cliente, telefono:r.telefono, transporte:r.transporte, descuento:Number(r.descuento), via:r.via, estado:r.estado, obs:r.obs, items:r.items||[] };
 }
-function movToDb(m) { return { fecha:m.fecha, codigo:m.codigo, descripcion:m.descripcion, movimiento:m.movimiento, cantidad:m.cantidad, obs:m.obs||"" }; }
-function movFromDb(r) { return { fecha:r.fecha, codigo:r.codigo, descripcion:r.descripcion, movimiento:r.movimiento, cantidad:Number(r.cantidad), obs:r.obs }; }
+function movToDb(m) { return { fecha:m.fecha, codigo:m.codigo, descripcion:m.descripcion, movimiento:m.movimiento, cantidad:m.cantidad, obs:m.obs||"", usuario:m.usuario||"" }; }
+function movFromDb(r) { return { fecha:r.fecha, codigo:r.codigo, descripcion:r.descripcion, movimiento:r.movimiento, cantidad:Number(r.cantidad), obs:r.obs, usuario:r.usuario||"" }; }
 
 // ── HELPERS ───────────────────────────────────────────────
 function calcularMateriales(item) {
@@ -164,7 +186,90 @@ const G = {
 
 // ── APP ───────────────────────────────────────────────────
 export default function App() {
-  const [tab, setTab]           = useState("dashboard");
+  const [usuario, setUsuario] = useState(null);
+  const [authCargando, setAuthCargando] = useState(true);
+
+  useEffect(()=>{
+    const session = loadSession();
+    if (session) setUsuario(session);
+    setAuthCargando(false);
+  },[]);
+
+  function handleLogin(user) {
+    saveSession(user);
+    setUsuario(user);
+  }
+
+  function handleLogout() {
+    clearSession();
+    setUsuario(null);
+  }
+
+  if (authCargando) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#f0f4f1"}}>
+      <div style={{fontSize:40}}>🏭</div>
+    </div>
+  );
+
+  if (!usuario) return <LoginScreen onLogin={handleLogin}/>;
+
+  return <AppMain usuario={usuario} onLogout={handleLogout}/>;
+}
+
+// ── LOGIN SCREEN ──────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]       = useState("");
+  const [cargando, setCargando] = useState(false);
+
+  async function handleSubmit() {
+    if (!email||!password) return;
+    setCargando(true); setError("");
+    const result = await login(email.trim(), password);
+    if (result.error) { setError(result.error); setCargando(false); return; }
+    const usuario = await getUsuario(email.trim());
+    if (!usuario) { setError("Usuario no encontrado. Contactá al administrador."); setCargando(false); return; }
+    if (!usuario.activo) { setError("Tu usuario está desactivado. Contactá al administrador."); setCargando(false); return; }
+    onLogin({ id:usuario.id, nombre:usuario.nombre, email:usuario.email, rol:usuario.rol });
+    setCargando(false);
+  }
+
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"linear-gradient(135deg,#1a5c2e 0%,#2d8a4e 100%)",padding:20}}>
+      <div style={{background:"white",borderRadius:20,padding:32,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:48,marginBottom:8}}>🏭</div>
+          <div style={{fontWeight:800,fontSize:24,color:"#1a5c2e"}}>BurleteStock</div>
+          <div style={{fontSize:13,color:"#6b7280",marginTop:4}}>Control de inventario</div>
+        </div>
+
+        <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:3}}>Email</label>
+        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+          placeholder="tu@mail.com" style={{width:"100%",border:"2px solid #e5e7eb",borderRadius:8,padding:"10px 12px",fontSize:14,marginBottom:12,outline:"none",fontFamily:"sans-serif"}}/>
+
+        <label style={{fontSize:12,fontWeight:600,color:"#374151",display:"block",marginBottom:3}}>Contraseña</label>
+        <input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+          placeholder="••••••••" style={{width:"100%",border:"2px solid #e5e7eb",borderRadius:8,padding:"10px 12px",fontSize:14,marginBottom:16,outline:"none",fontFamily:"sans-serif"}}/>
+
+        {error&&<div style={{background:"#fee2e2",color:"#991b1b",borderRadius:8,padding:"10px 12px",fontSize:13,marginBottom:16}}>{error}</div>}
+
+        <button onClick={handleSubmit} disabled={cargando} style={{width:"100%",background:"#1a5c2e",color:"white",border:"none",borderRadius:10,padding:"13px",fontWeight:700,fontSize:15,cursor:"pointer"}}>
+          {cargando?"Ingresando...":"Ingresar"}
+        </button>
+
+        <div style={{textAlign:"center",marginTop:16,fontSize:12,color:"#9ca3af"}}>
+          ¿Olvidaste tu contraseña? Contactá al administrador
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── APP MAIN ──────────────────────────────────────────────
+function AppMain({ usuario, onLogout }) {
+  const esAdmin = usuario.rol === "admin";
+  const [tab, setTab]           = useState(esAdmin ? "dashboard" : "pedidos");
   const [insumos, setInsumos]   = useState(INITIAL_INSUMOS);
   const [clientes, setClientes] = useState(INITIAL_CLIENTES);
   const [pedidos, setPedidos]   = useState(INITIAL_PEDIDOS);
@@ -173,7 +278,7 @@ export default function App() {
   const [modal, setModal]       = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cargando, setCargando] = useState(true);
-  const [chat, setChat]         = useState([{ role:"assistant", text:"¡Hola Valentino! Soy tu asistente. Preguntame sobre stock, pedidos, precios o insumos." }]);
+  const [chat, setChat]         = useState([{ role:"assistant", text:`¡Hola ${usuario.nombre}! Soy tu asistente. Preguntame sobre stock, pedidos o insumos.` }]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
@@ -206,6 +311,7 @@ export default function App() {
         }
       } catch(e) { console.error("Error cargando datos:",e); }
       setCargando(false);
+
     }
     cargarDatos();
   },[]);
@@ -231,8 +337,9 @@ export default function App() {
   }
 
   async function agregarMovimientoDb(mov) {
-    setMovimientos(prev=>[mov,...prev]);
-    await sb("movimientos","POST",movToDb(mov));
+    const movConUsuario = {...mov, usuario: usuario.nombre};
+    setMovimientos(prev=>[movConUsuario,...prev]);
+    await sb("movimientos","POST",movToDb(movConUsuario));
   }
 
   function descontarInsumos(items) {
@@ -348,15 +455,20 @@ export default function App() {
   }
 
   const tabs=[
-    {id:"dashboard",    label:"Panel",        icon:"📊"},
+    ...(esAdmin ? [{id:"dashboard", label:"Panel", icon:"📊"}] : []),
     {id:"pedidos",      label:"Pedidos",      icon:"📦", badge:pedidosPendientes.length},
-    {id:"clientes",     label:"Clientes",     icon:"👥"},
+    ...(esAdmin ? [{id:"clientes", label:"Clientes", icon:"👥"}] : []),
     {id:"insumos",      label:"Insumos",      icon:"🧲"},
-    {id:"precios",      label:"Precios",      icon:"💰"},
-    {id:"estadisticas", label:"Estadísticas", icon:"📈"},
+    ...(esAdmin ? [
+      {id:"precios",      label:"Precios",      icon:"💰"},
+      {id:"estadisticas", label:"Estadísticas", icon:"📈"},
+    ] : []),
     {id:"movimientos",  label:"Historial",    icon:"📋"},
-    {id:"ia",           label:"IA",           icon:"🤖"},
-    {id:"config",       label:"Config",       icon:"⚙️"},
+    ...(esAdmin ? [
+      {id:"ia",      label:"IA",       icon:"🤖"},
+      {id:"usuarios",label:"Usuarios", icon:"👤"},
+      {id:"config",  label:"Config",   icon:"⚙️"},
+    ] : []),
   ];
   const currentTab=tabs.find(t=>t.id===tab);
 
@@ -374,8 +486,9 @@ export default function App() {
             <div style={{fontSize:11,opacity:0.75}}>{currentTab?.icon} {currentTab?.label}</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,opacity:0.75}}>💵 ${precios.dolar.toLocaleString("es-AR")}</div>
-            {(alertasInsumos.length+pedidosPendientes.length)>0&&<div style={{background:"#ef4444",borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,marginTop:2}}>{alertasInsumos.length+pedidosPendientes.length} alertas</div>}
+            <div style={{fontSize:11,opacity:0.9,fontWeight:600}}>{usuario.nombre}</div>
+            <div style={{fontSize:10,opacity:0.65}}>{esAdmin?"Administrador":"Equipo"}</div>
+            {esAdmin&&(alertasInsumos.length+pedidosPendientes.length)>0&&<div style={{background:"#ef4444",borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,marginTop:2}}>{alertasInsumos.length+pedidosPendientes.length} alertas</div>}
           </div>
         </div>
       </div>
@@ -387,8 +500,8 @@ export default function App() {
             <div style={{background:"linear-gradient(135deg,#1a5c2e 0%,#2d8a4e 100%)",padding:"28px 20px 20px"}}>
               <div style={{fontSize:28}}>🏭</div>
               <div style={{fontWeight:700,fontSize:18,color:"white",marginTop:6}}>BurleteStock</div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.7)"}}>Control de inventario</div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.9)",marginTop:6,fontWeight:600}}>💰 Stock: {formatPesos(valorStock)}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.8)",marginTop:2}}>{usuario.nombre} · {esAdmin?"Administrador":"Equipo"}</div>
+              {esAdmin&&<div style={{fontSize:12,color:"rgba(255,255,255,0.9)",marginTop:6,fontWeight:600}}>💰 Stock: {formatPesos(valorStock)}</div>}
             </div>
             <div style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
               {tabs.map(t=>(
@@ -399,6 +512,11 @@ export default function App() {
                   {tab===t.id&&<span style={{color:"#1a5c2e"}}>●</span>}
                 </button>
               ))}
+            </div>
+            <div style={{padding:"12px 8px",borderTop:"1px solid #e5e7eb"}}>
+              <button onClick={onLogout} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",border:"none",borderRadius:10,cursor:"pointer",background:"#fff1f2",color:"#be123c",fontWeight:600,fontSize:14}}>
+                <span style={{fontSize:18}}>🚪</span> Cerrar sesión
+              </button>
             </div>
           </div>
         </div>
@@ -611,8 +729,16 @@ export default function App() {
               {movimientos.map((m,i)=>(
                 <div key={i} style={{...G.card,borderLeft:`4px solid ${m.movimiento==="ENTRADA"?"#10b981":"#ef4444"}`}}>
                   <div style={{display:"flex",justifyContent:"space-between"}}>
-                    <div><div style={{fontWeight:600,fontSize:13}}>{m.descripcion}</div><div style={{fontSize:11,color:"#9ca3af"}}>{m.codigo}</div>{m.obs&&<div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{m.obs}</div>}</div>
-                    <div style={{textAlign:"right"}}><div style={{fontWeight:700,color:m.movimiento==="ENTRADA"?"#10b981":"#ef4444",fontSize:16}}>{m.movimiento==="ENTRADA"?"+":"-"}{m.cantidad}m</div><div style={{fontSize:11,color:"#9ca3af"}}>{m.fecha}</div></div>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:13}}>{m.descripcion}</div>
+                      <div style={{fontSize:11,color:"#9ca3af"}}>{m.codigo}</div>
+                      {m.obs&&<div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{m.obs}</div>}
+                      {m.usuario&&<div style={{fontSize:11,color:"#8b5cf6",marginTop:2,fontWeight:600}}>👤 {m.usuario}</div>}
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:700,color:m.movimiento==="ENTRADA"?"#10b981":"#ef4444",fontSize:16}}>{m.movimiento==="ENTRADA"?"+":"-"}{m.cantidad}m</div>
+                      <div style={{fontSize:11,color:"#9ca3af"}}>{m.fecha}</div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -643,6 +769,9 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* USUARIOS */}
+          {tab==="usuarios"&&esAdmin&&<UsuariosTab usuarioActual={usuario}/>}
 
           {/* CONFIG */}
           {tab==="config"&&<ConfigInsumos insumos={insumos}
@@ -683,7 +812,7 @@ export default function App() {
       {modal?.tipo==="entradaInsumo"&&<EntradaInsumoModal insumos={insumos} onConfirm={async(id,cantidad)=>{
         const ins=insumos.find(i=>i.id===id);
         const nuevoStock=(ins?.stock||0)+Number(cantidad);
-        const mov={fecha:today(),codigo:id,descripcion:ins?.descripcion||id,movimiento:"ENTRADA",cantidad:Number(cantidad),obs:"Compra"};
+        const mov={fecha:today(),codigo:id,descripcion:ins?.descripcion||id,movimiento:"ENTRADA",cantidad:Number(cantidad),obs:"Compra",usuario:usuario.nombre};
         setInsumos(prev=>prev.map(i=>i.id===id?{...i,stock:nuevoStock}:i));
         setMovimientos(prev=>[mov,...prev]);
         await sb("insumos","PATCH",{stock:nuevoStock},`?id=eq.${id}`);
@@ -1269,6 +1398,138 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
           <div style={{fontWeight:600,marginTop:8}}>Las estadísticas aparecen cuando confirmás la entrega de pedidos</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── USUARIOS TAB ──────────────────────────────────────────
+function UsuariosTab({ usuarioActual }) {
+  const [usuarios, setUsuarios] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [editando, setEditando] = useState(null);
+  const [form, setForm]         = useState({});
+  const [error, setError]       = useState("");
+  const [exito, setExito]       = useState("");
+
+  useEffect(()=>{
+    async function cargar() {
+      const data = await sb("usuarios","GET",null,"?order=nombre");
+      if (data) setUsuarios(data);
+      setCargando(false);
+    }
+    cargar();
+  },[]);
+
+  async function crearUsuario() {
+    if (!form.email||!form.nombre||!form.password) { setError("Completá todos los campos"); return; }
+    setError(""); setCargando(true);
+    // Crear en Supabase Auth
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method:"POST",
+      headers:{ "apikey":SUPABASE_KEY, "Authorization":`Bearer ${SUPABASE_KEY}`, "Content-Type":"application/json" },
+      body: JSON.stringify({ email:form.email, password:form.password, email_confirm:true })
+    });
+    if (!res.ok) {
+      // Si falla admin endpoint, usar signup
+      const res2 = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method:"POST",
+        headers:{ "apikey":SUPABASE_KEY, "Content-Type":"application/json" },
+        body: JSON.stringify({ email:form.email, password:form.password })
+      });
+      if (!res2.ok) { setError("Error al crear el usuario. Verificá el email."); setCargando(false); return; }
+    }
+    // Guardar en tabla usuarios
+    const nuevo = { email:form.email, nombre:form.nombre, rol:form.rol||"equipo", activo:true };
+    await sb("usuarios","POST",nuevo);
+    const data = await sb("usuarios","GET",null,"?order=nombre");
+    if (data) setUsuarios(data);
+    setEditando(null); setForm({});
+    setExito("Usuario creado. El usuario debe confirmar su email para ingresar.");
+    setTimeout(()=>setExito(""),4000);
+    setCargando(false);
+  }
+
+  async function toggleActivo(u) {
+    await sb("usuarios","PATCH",{activo:!u.activo},`?id=eq.${u.id}`);
+    setUsuarios(prev=>prev.map(x=>x.id===u.id?{...x,activo:!u.activo}:x));
+  }
+
+  async function cambiarRol(u, nuevoRol) {
+    await sb("usuarios","PATCH",{rol:nuevoRol},`?id=eq.${u.id}`);
+    setUsuarios(prev=>prev.map(x=>x.id===u.id?{...x,rol:nuevoRol}:x));
+  }
+
+  if (editando) return (
+    <div>
+      <button onClick={()=>{setEditando(null);setForm({});setError("");}} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <div style={G.card}>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>➕ Nuevo usuario</div>
+        <label style={G.lbl}>Nombre completo *</label>
+        <input style={G.inp} value={form.nombre||""} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Juan López"/>
+        <label style={G.lbl}>Email *</label>
+        <input type="email" style={G.inp} value={form.email||""} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="juan@empresa.com"/>
+        <label style={G.lbl}>Contraseña inicial *</label>
+        <input type="password" style={G.inp} value={form.password||""} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Mínimo 6 caracteres"/>
+        <label style={G.lbl}>Rol</label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+          {[["equipo","👷 Equipo"],["admin","⭐ Administrador"]].map(([val,label])=>(
+            <button key={val} onClick={()=>setForm(f=>({...f,rol:val}))} style={{padding:"10px",border:`2px solid ${(form.rol||"equipo")===val?"#1a5c2e":"#e5e7eb"}`,borderRadius:8,background:(form.rol||"equipo")===val?"#f0fdf4":"white",color:(form.rol||"equipo")===val?"#1a5c2e":"#374151",fontWeight:(form.rol||"equipo")===val?700:400,cursor:"pointer",fontSize:13}}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {error&&<div style={{background:"#fee2e2",color:"#991b1b",borderRadius:8,padding:"10px 12px",fontSize:13,marginBottom:10}}>{error}</div>}
+        <div style={{background:"#fef9c3",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#854d0e",marginBottom:14}}>
+          ⚠️ El usuario recibirá un email para confirmar su cuenta antes de poder ingresar.
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button onClick={()=>{setEditando(null);setForm({});}} style={{padding:"11px",border:"2px solid #e5e7eb",borderRadius:10,background:"white",fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+          <button onClick={crearUsuario} disabled={cargando} style={{padding:"11px",background:"#1a5c2e",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>{cargando?"Creando...":"Crear usuario"}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={G.secTitle}>👤 Usuarios</div>
+        <button onClick={()=>{setEditando(true);setForm({rol:"equipo"});}} style={{background:"#1a5c2e",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
+      </div>
+
+      {exito&&<div style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"12px 14px",fontSize:13,marginBottom:14,fontWeight:600}}>{exito}</div>}
+
+      {cargando ? <div style={{textAlign:"center",padding:40,color:"#9ca3af"}}>Cargando...</div> : (
+        usuarios.map(u=>(
+          <div key={u.id} style={G.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{fontWeight:700,fontSize:14}}>{u.nombre}</div>
+                  {u.id===usuarioActual.id&&<span style={{background:"#dbeafe",color:"#1e40af",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Vos</span>}
+                  <span style={{background:u.rol==="admin"?"#fef9c3":"#f0fdf4",color:u.rol==="admin"?"#854d0e":"#166534",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>{u.rol==="admin"?"⭐ Admin":"👷 Equipo"}</span>
+                </div>
+                <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{u.email}</div>
+                <div style={{fontSize:11,color:u.activo?"#10b981":"#ef4444",marginTop:2,fontWeight:600}}>{u.activo?"● Activo":"● Inactivo"}</div>
+              </div>
+              {u.id!==usuarioActual.id&&(
+                <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end",marginLeft:10}}>
+                  <select value={u.rol} onChange={e=>cambiarRol(u,e.target.value)} style={{border:"1px solid #e5e7eb",borderRadius:8,padding:"4px 8px",fontSize:12,background:"white",cursor:"pointer"}}>
+                    <option value="equipo">Equipo</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button onClick={()=>toggleActivo(u)} style={{background:u.activo?"#fff1f2":"#f0fdf4",border:`1px solid ${u.activo?"#fecdd3":"#bbf7d0"}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:u.activo?"#be123c":"#166534",cursor:"pointer",fontWeight:600}}>
+                    {u.activo?"Desactivar":"Activar"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+      <div style={{fontSize:12,color:"#9ca3af",textAlign:"center",marginTop:8}}>
+        Los usuarios desactivados no pueden ingresar a la app
+      </div>
     </div>
   );
 }
