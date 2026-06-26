@@ -1,5 +1,46 @@
 import { useState, useRef, useEffect } from "react";
 
+// ── SUPABASE ──────────────────────────────────────────────
+const SUPABASE_URL = "https://lopijqyorwfwufmtxjjt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvcGlqcXlvcndmd3VmbXR4amp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzI1NzcsImV4cCI6MjA5ODA0ODU3N30.zCDffkB-B14YemsMzQuzyg-Q3I69nDiNWQd4ShwRmNI";
+
+async function sb(table, method="GET", body=null, query="") {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
+    method,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": method==="POST" ? "return=representation" : method==="PATCH"||method==="PUT" ? "return=representation" : "",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) { const err = await res.text(); console.error(table, method, err); return null; }
+  if (method==="DELETE") return true;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// Mapeo entre formato app ↔ Supabase
+function insumoToDb(i) {
+  return { id:i.id, descripcion:i.descripcion, unidad:i.unidad, stock:i.stock, minimo:i.minimo, maximo:i.maximo, proveedor:i.proveedor, es_iman:!!i.esIman, es_perfil:!!i.esPerfil, es_manguera:!!i.esManguera, precio_por_metro:i.precioPorMetro||0, precio_dolar_por_metro:i.precioDolarPorMetro||0 };
+}
+function insumoFromDb(r) {
+  return { id:r.id, descripcion:r.descripcion, unidad:r.unidad, stock:Number(r.stock), minimo:Number(r.minimo), maximo:Number(r.maximo), proveedor:r.proveedor, esIman:r.es_iman, esPerfil:r.es_perfil, esManguera:r.es_manguera, precioPorMetro:Number(r.precio_por_metro), precioDolarPorMetro:Number(r.precio_dolar_por_metro) };
+}
+function clienteToDb(c) {
+  return { id:c.id, nombre:c.nombre, telefono:c.telefono||"", direccion:c.direccion||"", transporte:c.transporte||"", descuento:c.descuento||0 };
+}
+function clienteFromDb(r) { return { id:r.id, nombre:r.nombre, telefono:r.telefono, direccion:r.direccion, transporte:r.transporte, descuento:Number(r.descuento) }; }
+function pedidoToDb(p) {
+  return { id:p.id, fecha:p.fecha, fecha_entrega:p.fechaEntrega||null, cliente_id:p.clienteId||null, cliente:p.cliente, telefono:p.telefono||"", transporte:p.transporte||"", descuento:p.descuento||0, via:p.via||"", estado:p.estado, obs:p.obs||"", items:p.items };
+}
+function pedidoFromDb(r) {
+  return { id:r.id, fecha:r.fecha, fechaEntrega:r.fecha_entrega, clienteId:r.cliente_id, cliente:r.cliente, telefono:r.telefono, transporte:r.transporte, descuento:Number(r.descuento), via:r.via, estado:r.estado, obs:r.obs, items:r.items||[] };
+}
+function movToDb(m) { return { fecha:m.fecha, codigo:m.codigo, descripcion:m.descripcion, movimiento:m.movimiento, cantidad:m.cantidad, obs:m.obs||"" }; }
+function movFromDb(r) { return { fecha:r.fecha, codigo:r.codigo, descripcion:r.descripcion, movimiento:r.movimiento, cantidad:Number(r.cantidad), obs:r.obs }; }
+
 // ── HELPERS ───────────────────────────────────────────────
 function calcularMateriales(item) {
   const tipo = item.tipoProducto;
@@ -131,11 +172,45 @@ export default function App() {
   const [precios, setPrecios]   = useState(INITIAL_PRECIOS);
   const [modal, setModal]       = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const [chat, setChat]         = useState([{ role:"assistant", text:"¡Hola Valentino! Soy tu asistente. Preguntame sobre stock, pedidos, precios o insumos." }]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
   useEffect(()=>{ chatEndRef.current?.scrollIntoView({behavior:"smooth"}); },[chat]);
+
+  // ── Cargar datos de Supabase al iniciar
+  useEffect(()=>{
+    async function cargarDatos() {
+      setCargando(true);
+      try {
+        const [ins, cli, ped, mov, pre] = await Promise.all([
+          sb("insumos","GET",null,"?order=id"),
+          sb("clientes","GET",null,"?order=nombre"),
+          sb("pedidos","GET",null,"?order=created_at.desc"),
+          sb("movimientos","GET",null,"?order=created_at.desc&limit=200"),
+          sb("precios","GET",null,"?id=eq.1"),
+        ]);
+        if (ins?.length)  setInsumos(ins.map(insumoFromDb));
+        if (cli?.length)  setClientes(cli.map(clienteFromDb));
+        if (ped?.length)  setPedidos(ped.map(pedidoFromDb));
+        if (mov?.length)  setMovimientos(mov.map(movFromDb));
+        if (pre?.length)  setPrecios({ dolar:Number(pre[0].dolar), ganancia:Number(pre[0].ganancia), ultimaActualizacion:pre[0].ultima_actualizacion });
+
+        // Si no hay datos en Supabase, cargar los iniciales
+        if (!ins?.length) {
+          await Promise.all(INITIAL_INSUMOS.map(i=>sb("insumos","POST",insumoToDb(i))));
+        }
+        if (!cli?.length) {
+          await Promise.all(INITIAL_CLIENTES.map(c=>sb("clientes","POST",clienteToDb(c))));
+        }
+      } catch(e) { console.error("Error cargando datos:",e); }
+      setCargando(false);
+    }
+    cargarDatos();
+  },[]);
+
+
 
   const alertasInsumos    = insumos.filter(i=>getEstadoInsumo(i)==="reponer");
   const pedidosPendientes = pedidos.filter(p=>p.estado!=="entregado");
@@ -147,6 +222,19 @@ export default function App() {
     return acc;
   }, 0);
 
+  async function actualizarInsumoDb(id, changes) {
+    const ins = insumos.find(i=>i.id===id);
+    if (!ins) return;
+    const updated = {...ins,...changes};
+    setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
+    await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+  }
+
+  async function agregarMovimientoDb(mov) {
+    setMovimientos(prev=>[mov,...prev]);
+    await sb("movimientos","POST",movToDb(mov));
+  }
+
   function descontarInsumos(items) {
     items.forEach(item=>{
       const mat = calcularMateriales(item);
@@ -155,30 +243,37 @@ export default function App() {
       if (item.tipoProducto==="Angulo" && (item.presentacion==="caja"||item.presentacion==="bolsa")) qty *= 20;
       if (mat.perfilMm>0&&item.perfilId) {
         const metros=(mat.perfilMm*qty)/1000;
-        setInsumos(prev=>prev.map(ins=>ins.id===item.perfilId?{...ins,stock:Math.max(0,ins.stock-metros)}:ins));
         const ins=insumos.find(i=>i.id===item.perfilId);
-        setMovimientos(prev=>[{fecha:today(),codigo:item.perfilId,descripcion:ins?.descripcion||item.perfilId,movimiento:"SALIDA",cantidad:metros.toFixed(3),obs:`Fabricación: ${item.descripcion}`},...prev]);
+        const nuevoStock=Math.max(0,(ins?.stock||0)-metros);
+        actualizarInsumoDb(item.perfilId,{stock:nuevoStock});
+        agregarMovimientoDb({fecha:today(),codigo:item.perfilId,descripcion:ins?.descripcion||item.perfilId,movimiento:"SALIDA",cantidad:metros.toFixed(3),obs:`Fabricación: ${item.descripcion}`});
       }
       if (mat.imanMm>0&&item.imanId) {
         const metros=(mat.imanMm*qty)/1000;
-        setInsumos(prev=>prev.map(ins=>ins.id===item.imanId?{...ins,stock:Math.max(0,ins.stock-metros)}:ins));
         const ins=insumos.find(i=>i.id===item.imanId);
-        setMovimientos(prev=>[{fecha:today(),codigo:item.imanId,descripcion:ins?.descripcion||item.imanId,movimiento:"SALIDA",cantidad:metros.toFixed(3),obs:`Fabricación: ${item.descripcion}`},...prev]);
+        const nuevoStock=Math.max(0,(ins?.stock||0)-metros);
+        actualizarInsumoDb(item.imanId,{stock:nuevoStock});
+        agregarMovimientoDb({fecha:today(),codigo:item.imanId,descripcion:ins?.descripcion||item.imanId,movimiento:"SALIDA",cantidad:metros.toFixed(3),obs:`Fabricación: ${item.descripcion}`});
       }
     });
   }
 
-  function cambiarEstado(pedidoId, nuevoEstado) {
+  async function cambiarEstado(pedidoId, nuevoEstado) {
     const p=pedidos.find(p=>p.id===pedidoId);
     if (nuevoEstado==="en fabricacion"&&p) descontarInsumos(p.items);
     setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:nuevoEstado}:p));
+    await sb("pedidos","PATCH",{estado:nuevoEstado},`?id=eq.${pedidoId}`);
   }
-  function entregarPedido(pedidoId) {
-    setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:"entregado",fechaEntrega:today()}:p));
+  async function entregarPedido(pedidoId) {
+    const fechaEntrega=today();
+    setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:"entregado",fechaEntrega}:p));
+    await sb("pedidos","PATCH",{estado:"entregado",fecha_entrega:fechaEntrega},`?id=eq.${pedidoId}`);
   }
-  function agregarPedido(pedido) {
+  async function agregarPedido(pedido) {
     const id=`PED-${String(Date.now()).slice(-4)}`;
-    setPedidos(prev=>[{...pedido,id,fecha:today(),estado:"pendiente"},...prev]);
+    const nuevo={...pedido,id,fecha:today(),estado:"pendiente"};
+    setPedidos(prev=>[nuevo,...prev]);
+    await sb("pedidos","POST",pedidoToDb(nuevo));
     setModal(null);
   }
 
@@ -420,7 +515,14 @@ export default function App() {
           )}
 
           {/* CLIENTES */}
-          {tab==="clientes"&&<ClientesTab clientes={clientes} setClientes={setClientes} onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}/>}
+          {tab==="clientes"&&<ClientesTab clientes={clientes}
+            onGuardarCliente={async(cli, esNuevo)=>{
+              if (esNuevo) { setClientes(prev=>[...prev,cli]); await sb("clientes","POST",clienteToDb(cli)); }
+              else { setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c)); await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); }
+            }}
+            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); await sb("clientes","DELETE",null,`?id=eq.${id}`); }}
+            onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}
+          />}
 
           {/* INSUMOS */}
           {tab==="insumos"&&(
@@ -484,7 +586,19 @@ export default function App() {
 
           {/* PRECIOS */}
           {tab==="precios"&&(
-            <PreciosTab precios={precios} setPrecios={setPrecios} insumos={insumos} setInsumos={setInsumos}/>
+            <PreciosTab precios={precios}
+              onGuardarPrecios={async p=>{
+                setPrecios(p);
+                await sb("precios","PATCH",{dolar:p.dolar,ganancia:p.ganancia,ultima_actualizacion:p.ultimaActualizacion},"?id=eq.1");
+              }}
+              insumos={insumos}
+              onUpdatePrecioInsumo={async(id,changes)=>{
+                const ins=insumos.find(i=>i.id===id);
+                const updated={...ins,...changes};
+                setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
+                await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+              }}
+            />
           )}
 
           {/* ESTADÍSTICAS */}
@@ -531,17 +645,49 @@ export default function App() {
           )}
 
           {/* CONFIG */}
-          {tab==="config"&&<ConfigInsumos insumos={insumos} onUpdateInsumo={(id,ch)=>setInsumos(prev=>prev.map(i=>i.id===id?{...i,...ch}:i))} onAddInsumo={item=>setInsumos(prev=>[...prev,item])} onDeleteInsumo={id=>setInsumos(prev=>prev.filter(i=>i.id!==id))}/>}
+          {tab==="config"&&<ConfigInsumos insumos={insumos}
+            onUpdateInsumo={async(id,ch)=>{
+              const ins=insumos.find(i=>i.id===id);
+              const updated={...ins,...ch};
+              setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
+              await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+            }}
+            onAddInsumo={async item=>{
+              setInsumos(prev=>[...prev,item]);
+              await sb("insumos","POST",insumoToDb(item));
+            }}
+            onDeleteInsumo={async id=>{
+              setInsumos(prev=>prev.filter(i=>i.id!==id));
+              await sb("insumos","DELETE",null,`?id=eq.${id}`);
+            }}
+          />}
+
+        </div>
+      </div>
+
+      {/* LOADING */}
+      {cargando&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500}}>
+          <div style={{fontSize:48,marginBottom:16}}>🏭</div>
+          <div style={{fontWeight:700,fontSize:18,color:"#1a5c2e",marginBottom:8}}>BurleteStock</div>
+          <div style={{fontSize:14,color:"#6b7280"}}>Cargando datos...</div>
+          <div style={{marginTop:20,display:"flex",gap:6}}>{[0,1,2].map(j=><div key={j} style={{width:8,height:8,borderRadius:"50%",background:"#1a5c2e",animation:`bounce 1s ${j*0.2}s infinite`}}/>)}</div>
+        </div>
+      )}
 
         </div>
       </div>
 
       {/* MODALES */}
       {modal?.tipo==="nuevoPedido"&&<NuevoPedidoModal insumos={insumos} clientes={clientes} clientePrefill={modal.clientePrefill} precios={precios} onConfirm={agregarPedido} onClose={()=>setModal(null)}/>}
-      {modal?.tipo==="entradaInsumo"&&<EntradaInsumoModal insumos={insumos} onConfirm={(id,cantidad)=>{
+      {modal?.tipo==="entradaInsumo"&&<EntradaInsumoModal insumos={insumos} onConfirm={async(id,cantidad)=>{
         const ins=insumos.find(i=>i.id===id);
-        setInsumos(prev=>prev.map(i=>i.id===id?{...i,stock:i.stock+Number(cantidad)}:i));
-        setMovimientos(prev=>[{fecha:today(),codigo:id,descripcion:ins?.descripcion||id,movimiento:"ENTRADA",cantidad:Number(cantidad),obs:"Compra"},...prev]);
+        const nuevoStock=(ins?.stock||0)+Number(cantidad);
+        const mov={fecha:today(),codigo:id,descripcion:ins?.descripcion||id,movimiento:"ENTRADA",cantidad:Number(cantidad),obs:"Compra"};
+        setInsumos(prev=>prev.map(i=>i.id===id?{...i,stock:nuevoStock}:i));
+        setMovimientos(prev=>[mov,...prev]);
+        await sb("insumos","PATCH",{stock:nuevoStock},`?id=eq.${id}`);
+        await sb("movimientos","POST",movToDb(mov));
         setModal(null);
       }} onClose={()=>setModal(null)}/>}
 
@@ -551,12 +697,12 @@ export default function App() {
 }
 
 // ── PRECIOS TAB ───────────────────────────────────────────
-function PreciosTab({ precios, setPrecios, insumos, setInsumos }) {
+function PreciosTab({ precios, onGuardarPrecios, insumos, onUpdatePrecioInsumo }) {
   const [form, setForm] = useState({...precios});
   const [guardado, setGuardado] = useState(false);
 
   function guardar() {
-    setPrecios({...form, ultimaActualizacion: today()});
+    onGuardarPrecios({...form, ultimaActualizacion: today()});
     setGuardado(true);
     setTimeout(()=>setGuardado(false), 2000);
   }
@@ -590,14 +736,14 @@ function PreciosTab({ precios, setPrecios, insumos, setInsumos }) {
             <div>
               <label style={G.lbl}>Precio en USD por metro</label>
               <input type="number" step="0.01" style={G.inp} value={ins.precioDolarPorMetro||0}
-                onChange={e=>setInsumos(prev=>prev.map(i=>i.id===ins.id?{...i,precioDolarPorMetro:Number(e.target.value)}:i))}/>
+                onChange={e=>onUpdatePrecioInsumo(ins.id,{precioDolarPorMetro:Number(e.target.value)})}/>
               <div style={{fontSize:12,color:"#6b7280"}}>= {formatPesos((ins.precioDolarPorMetro||0)*precios.dolar)}/m al dólar actual</div>
             </div>
           ) : (
             <div>
               <label style={G.lbl}>Precio en pesos por metro</label>
               <input type="number" style={G.inp} value={ins.precioPorMetro||0}
-                onChange={e=>setInsumos(prev=>prev.map(i=>i.id===ins.id?{...i,precioPorMetro:Number(e.target.value)}:i))}/>
+                onChange={e=>onUpdatePrecioInsumo(ins.id,{precioPorMetro:Number(e.target.value)})}/>
             </div>
           )}
         </div>
@@ -607,17 +753,18 @@ function PreciosTab({ precios, setPrecios, insumos, setInsumos }) {
 }
 
 // ── CLIENTES TAB ──────────────────────────────────────────
-function ClientesTab({ clientes, setClientes, onNuevoPedido }) {
+function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPedido }) {
   const [editando, setEditando] = useState(null);
   const [form, setForm]         = useState({});
   const [buscar, setBuscar]     = useState("");
 
   const filtrados = clientes.filter(c=>c.nombre.toLowerCase().includes(buscar.toLowerCase()));
 
-  function guardar() {
+  async function guardar() {
     if (!form.nombre?.trim()) return;
-    if (editando.nuevo) setClientes(prev=>[...prev,{...form,id:`CLI-${String(Date.now()).slice(-4)}`}]);
-    else setClientes(prev=>prev.map(c=>c.id===form.id?form:c));
+    const esNuevo = !!editando.nuevo;
+    const cli = esNuevo ? {...form, id:`CLI-${String(Date.now()).slice(-4)}`} : form;
+    await onGuardarCliente(cli, esNuevo);
     setEditando(null);
   }
 
@@ -662,7 +809,7 @@ function ClientesTab({ clientes, setClientes, onNuevoPedido }) {
             <div style={{display:"flex",gap:6,marginLeft:10,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={()=>onNuevoPedido(c)} style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#166534",fontWeight:600,cursor:"pointer"}}>+ Pedido</button>
               <button onClick={()=>{setEditando({id:c.id});setForm({...c});}} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"6px 10px",fontSize:13,cursor:"pointer"}}>✏️</button>
-              <button onClick={()=>setClientes(prev=>prev.filter(x=>x.id!==c.id))} style={{background:"#fff1f2",border:"1px solid #fecdd3",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#be123c",cursor:"pointer"}}>🗑️</button>
+              <button onClick={()=>onEliminarCliente(c.id)} style={{background:"#fff1f2",border:"1px solid #fecdd3",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#be123c",cursor:"pointer"}}>🗑️</button>
             </div>
           </div>
         </div>
