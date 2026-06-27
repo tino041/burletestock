@@ -63,6 +63,17 @@ function pedidoFromDb(r) {
 function movToDb(m) { return { fecha:m.fecha, codigo:m.codigo, descripcion:m.descripcion, movimiento:m.movimiento, cantidad:m.cantidad, obs:m.obs||"", usuario:m.usuario||"" }; }
 function movFromDb(r) { return { fecha:r.fecha, codigo:r.codigo, descripcion:r.descripcion, movimiento:r.movimiento, cantidad:Number(r.cantidad), obs:r.obs, usuario:r.usuario||"" }; }
 
+function prodTermToDb(p) {
+  return { id:p.id, tipo:p.tipo, aplicacion:p.aplicacion||null, ancho:p.ancho||null, alto:p.alto||null, largo:p.largo||null, color:p.color||"", stock:p.stock||0, minimo:p.minimo||0 };
+}
+function prodTermFromDb(r) {
+  return { id:r.id, tipo:r.tipo, aplicacion:r.aplicacion, ancho:r.ancho?Number(r.ancho):null, alto:r.alto?Number(r.alto):null, largo:r.largo?Number(r.largo):null, color:r.color||"", stock:Number(r.stock), minimo:Number(r.minimo) };
+}
+function prodTermDesc(p) {
+  const medida = p.ancho ? `${p.ancho}×${p.alto}mm` : p.largo ? `${p.largo}mm` : "";
+  return `${p.tipo}${p.aplicacion?" "+p.aplicacion:""} ${medida}${p.color?" ("+p.color+")":""}`.trim();
+}
+
 // ── HELPERS ───────────────────────────────────────────────
 function calcularMateriales(item) {
   const tipo = item.tipoProducto;
@@ -275,6 +286,7 @@ function AppMain({ usuario, onLogout }) {
   const [pedidos, setPedidos]   = useState(INITIAL_PEDIDOS);
   const [movimientos, setMovimientos] = useState(INITIAL_MOVIMIENTOS);
   const [precios, setPrecios]   = useState(INITIAL_PRECIOS);
+  const [productosTerminados, setProductosTerminados] = useState([]);
   const [modal, setModal]       = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -289,18 +301,20 @@ function AppMain({ usuario, onLogout }) {
     async function cargarDatos() {
       setCargando(true);
       try {
-        const [ins, cli, ped, mov, pre] = await Promise.all([
+        const [ins, cli, ped, mov, pre, prod] = await Promise.all([
           sb("insumos","GET",null,"?order=id"),
           sb("clientes","GET",null,"?order=nombre"),
           sb("pedidos","GET",null,"?order=created_at.desc"),
           sb("movimientos","GET",null,"?order=created_at.desc&limit=200"),
           sb("precios","GET",null,"?id=eq.1"),
+          sb("productos_terminados","GET",null,"?order=tipo,aplicacion"),
         ]);
         if (ins?.length)  setInsumos(ins.map(insumoFromDb));
         if (cli?.length)  setClientes(cli.map(clienteFromDb));
         if (ped?.length)  setPedidos(ped.map(pedidoFromDb));
         if (mov?.length)  setMovimientos(mov.map(movFromDb));
         if (pre?.length)  setPrecios({ dolar:Number(pre[0].dolar), ganancia:Number(pre[0].ganancia), ultimaActualizacion:pre[0].ultima_actualizacion });
+        if (prod?.length) setProductosTerminados(prod.map(prodTermFromDb));
 
         // Si no hay datos en Supabase, cargar los iniciales
         if (!ins?.length) {
@@ -373,6 +387,24 @@ function AppMain({ usuario, onLogout }) {
   }
   async function entregarPedido(pedidoId) {
     const fechaEntrega=today();
+    const pedido = pedidos.find(p=>p.id===pedidoId);
+    // Descontar del stock de productos terminados si hay coincidencia
+    if (pedido) {
+      for (const item of pedido.items) {
+        const qty = Number(item.cantidad||1) * (item.presentacion ? 20 : 1);
+        // Buscar producto terminado que coincida
+        const prod = productosTerminados.find(p =>
+          p.tipo === item.tipoProducto &&
+          p.aplicacion === item.aplicacion &&
+          (item.ancho ? Number(p.ancho)===Number(item.ancho) && Number(p.alto)===Number(item.alto) : Number(p.largo)===Number(item.largo))
+        );
+        if (prod && prod.stock >= qty) {
+          const nuevoStock = prod.stock - qty;
+          setProductosTerminados(prev=>prev.map(p=>p.id===prod.id?{...p,stock:nuevoStock}:p));
+          await sb("productos_terminados","PATCH",{stock:nuevoStock},`?id=eq.${prod.id}`);
+        }
+      }
+    }
     setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:"entregado",fechaEntrega}:p));
     await sb("pedidos","PATCH",{estado:"entregado",fecha_entrega:fechaEntrega},`?id=eq.${pedidoId}`);
   }
@@ -458,6 +490,7 @@ function AppMain({ usuario, onLogout }) {
     ...(esAdmin ? [{id:"dashboard", label:"Panel", icon:"📊"}] : []),
     {id:"pedidos",      label:"Pedidos",      icon:"📦", badge:pedidosPendientes.length},
     ...(esAdmin ? [{id:"clientes", label:"Clientes", icon:"👥"}] : []),
+    {id:"stock",        label:"Stock",        icon:"📦"},
     {id:"insumos",      label:"Insumos",      icon:"🧲"},
     ...(esAdmin ? [
       {id:"precios",      label:"Precios",      icon:"💰"},
@@ -641,6 +674,27 @@ function AppMain({ usuario, onLogout }) {
             onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); await sb("clientes","DELETE",null,`?id=eq.${id}`); }}
             onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}
           />}
+
+          {/* STOCK PRODUCTOS TERMINADOS */}
+          {tab==="stock"&&(
+            <StockProductosTab
+              productos={productosTerminados}
+              onAgregar={async p=>{
+                const id=`PT-${String(Date.now()).slice(-6)}`;
+                const nuevo={...p,id};
+                setProductosTerminados(prev=>[...prev,nuevo]);
+                await sb("productos_terminados","POST",prodTermToDb(nuevo));
+              }}
+              onActualizar={async(id,changes)=>{
+                setProductosTerminados(prev=>prev.map(p=>p.id===id?{...p,...changes}:p));
+                await sb("productos_terminados","PATCH",changes,`?id=eq.${id}`);
+              }}
+              onEliminar={async id=>{
+                setProductosTerminados(prev=>prev.filter(p=>p.id!==id));
+                await sb("productos_terminados","DELETE",null,`?id=eq.${id}`);
+              }}
+            />
+          )}
 
           {/* INSUMOS */}
           {tab==="insumos"&&(
@@ -1527,6 +1581,182 @@ function UsuariosTab({ usuarioActual }) {
       <div style={{fontSize:12,color:"#9ca3af",textAlign:"center",marginTop:8}}>
         Los usuarios desactivados no pueden ingresar a la app
       </div>
+    </div>
+  );
+}
+
+// ── STOCK PRODUCTOS TERMINADOS ────────────────────────────
+function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const COLORES = ["Gris", "Negro", "Blanco", "Marrón", "Beige", "Otro"];
+
+  function abrirNuevo() {
+    setForm({ tipo:"Marco", aplicacion:"Heladera", ancho:"", alto:"", largo:"", color:"Gris", stock:0, minimo:2 });
+    setModal("nuevo");
+  }
+
+  function abrirEditar(p) {
+    setForm({...p});
+    setModal("editar");
+  }
+
+  async function guardar() {
+    if (!form.tipo) return;
+    if (modal==="nuevo") await onAgregar(form);
+    else await onActualizar(form.id, form);
+    setModal(null);
+  }
+
+  // Agrupar por tipo
+  const grupos = {};
+  productos.forEach(p=>{
+    if (!grupos[p.tipo]) grupos[p.tipo]=[];
+    grupos[p.tipo].push(p);
+  });
+
+  const totalProductos = productos.reduce((a,p)=>a+p.stock,0);
+  const sinStock = productos.filter(p=>p.stock===0).length;
+  const bajosStock = productos.filter(p=>p.stock>0&&p.stock<=p.minimo).length;
+
+  const inp = G.inp;
+  const lbl = G.lbl;
+
+  if (modal) return (
+    <div>
+      <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <div style={G.card}>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{modal==="nuevo"?"➕ Agregar producto":"✏️ Editar producto"}</div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div>
+            <label style={lbl}>Tipo</label>
+            <select style={inp} value={form.tipo||""} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}>
+              {TIPOS.map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          {form.tipo!=="Manguera"&&(
+            <div>
+              <label style={lbl}>Aplicación</label>
+              <select style={inp} value={form.aplicacion||""} onChange={e=>setForm(f=>({...f,aplicacion:e.target.value}))}>
+                {APLICACIONES.map(a=><option key={a}>{a}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {["Marco","Burlete","Angulo"].includes(form.tipo) && (
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div><label style={lbl}>Ancho (mm)</label><input type="number" style={inp} value={form.ancho||""} onChange={e=>setForm(f=>({...f,ancho:Number(e.target.value)}))} placeholder="ej: 600"/></div>
+            <div><label style={lbl}>Alto (mm)</label><input type="number" style={inp} value={form.alto||""} onChange={e=>setForm(f=>({...f,alto:Number(e.target.value)}))} placeholder="ej: 800"/></div>
+          </div>
+        )}
+        {["Tira","Manguera"].includes(form.tipo) && (
+          <div><label style={lbl}>Largo (mm)</label><input type="number" style={inp} value={form.largo||""} onChange={e=>setForm(f=>({...f,largo:Number(e.target.value)}))} placeholder="ej: 2500"/></div>
+        )}
+
+        <label style={lbl}>Color</label>
+        <select style={inp} value={form.color||"Gris"} onChange={e=>setForm(f=>({...f,color:e.target.value}))}>
+          {COLORES.map(c=><option key={c}>{c}</option>)}
+        </select>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div><label style={lbl}>Stock actual (unidades)</label><input type="number" min={0} style={inp} value={form.stock||0} onChange={e=>setForm(f=>({...f,stock:Number(e.target.value)}))}/></div>
+          <div><label style={lbl}>Stock mínimo</label><input type="number" min={0} style={inp} value={form.minimo||0} onChange={e=>setForm(f=>({...f,minimo:Number(e.target.value)}))}/></div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
+          <button onClick={()=>setModal(null)} style={{padding:"11px",border:"2px solid #e5e7eb",borderRadius:10,background:"white",fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+          <button onClick={guardar} style={{padding:"11px",background:"#1a5c2e",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={G.secTitle}>📦 Stock de productos</div>
+        <button onClick={abrirNuevo} style={{background:"#1a5c2e",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Agregar</button>
+      </div>
+
+      {/* Resumen */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+        {[
+          {label:"Total en stock", value:totalProductos, color:"#1a5c2e", icon:"📦"},
+          {label:"Sin stock",      value:sinStock,       color:sinStock>0?"#ef4444":"#10b981", icon:"❌"},
+          {label:"Stock bajo",     value:bajosStock,     color:bajosStock>0?"#f59e0b":"#10b981", icon:"⚠️"},
+        ].map((c,i)=>(
+          <div key={i} style={{...G.card,marginBottom:0,padding:12}}>
+            <div style={{fontSize:18}}>{c.icon}</div>
+            <div style={{fontSize:22,fontWeight:800,color:c.color,lineHeight:1.1}}>{c.value}</div>
+            <div style={{fontSize:11,color:"#6b7280",marginTop:1}}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {productos.length===0 && (
+        <div style={{...G.card,textAlign:"center",padding:32,color:"#9ca3af"}}>
+          <div style={{fontSize:40}}>📦</div>
+          <div style={{fontWeight:600,marginTop:8}}>No hay productos cargados</div>
+          <div style={{fontSize:13,marginTop:4}}>Tocá "+ Agregar" para cargar tu stock de productos terminados</div>
+        </div>
+      )}
+
+      {Object.entries(grupos).map(([tipo, items])=>(
+        <div key={tipo} style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>{tipo}s</div>
+          {items.map(p=>{
+            const medida = p.ancho ? `${p.ancho}×${p.alto}mm` : p.largo ? `${p.largo}mm` : "";
+            const estado = p.stock===0?"sinstock":p.stock<=p.minimo?"bajo":"ok";
+            const estadoColor = {sinstock:"#ef4444",bajo:"#f59e0b",ok:"#10b981"}[estado];
+            const estadoLabel = {sinstock:"❌ Sin stock",bajo:"⚠️ Stock bajo",ok:"✅ OK"}[estado];
+            return (
+              <div key={p.id} style={{...G.card,borderLeft:`4px solid ${estadoColor}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:14}}>{p.aplicacion||""} {medida}</div>
+                    <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>
+                      {p.color&&<span>🎨 {p.color}</span>}
+                      {p.minimo>0&&<span style={{marginLeft:8}}>Mín: {p.minimo} uds</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:26,fontWeight:800,color:estadoColor,lineHeight:1}}>{p.stock}</div>
+                      <div style={{fontSize:10,color:"#9ca3af"}}>unidades</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {/* Botones rápidos +/- */}
+                      <button onClick={()=>onActualizar(p.id,{stock:p.stock+1})} style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:6,padding:"4px 8px",fontSize:14,cursor:"pointer",color:"#166534",fontWeight:700}}>+</button>
+                      <button onClick={()=>p.stock>0&&onActualizar(p.id,{stock:p.stock-1})} style={{background:"#fff1f2",border:"1px solid #fecdd3",borderRadius:6,padding:"4px 8px",fontSize:14,cursor:"pointer",color:"#be123c",fontWeight:700}}>-</button>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <button onClick={()=>abrirEditar(p)} style={{background:"#f3f4f6",border:"none",borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>setConfirmDel({id:p.id,nombre:`${tipo} ${medida}`})} style={{background:"#fff1f2",border:"1px solid #fecdd3",borderRadius:6,padding:"4px 8px",fontSize:12,cursor:"pointer",color:"#be123c"}}>🗑️</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      {confirmDel&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
+          <div style={{background:"white",borderRadius:16,padding:24,maxWidth:320,width:"100%"}}>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>¿Eliminar?</div>
+            <div style={{fontSize:14,color:"#6b7280",marginBottom:20}}>Se eliminará <b>{confirmDel.nombre}</b> del stock.</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <button onClick={()=>setConfirmDel(null)} style={{padding:"11px",border:"2px solid #e5e7eb",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+              <button onClick={()=>{onEliminar(confirmDel.id);setConfirmDel(null);}} style={{padding:"11px",background:"#ef4444",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
