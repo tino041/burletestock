@@ -384,15 +384,15 @@ function AppMain({ usuario, onLogout }) {
     if (nuevoEstado==="en fabricacion"&&p) descontarInsumos(p.items);
     setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:nuevoEstado}:p));
     await sb("pedidos","PATCH",{estado:nuevoEstado},`?id=eq.${pedidoId}`);
+    const labels={"en fabricacion":"En fabricación","listo":"Listo para entregar"};
+    toast(labels[nuevoEstado]||"Estado actualizado");
   }
   async function entregarPedido(pedidoId) {
     const fechaEntrega=today();
     const pedido = pedidos.find(p=>p.id===pedidoId);
-    // Descontar del stock de productos terminados si hay coincidencia
     if (pedido) {
       for (const item of pedido.items) {
         const qty = Number(item.cantidad||1) * (item.presentacion ? 20 : 1);
-        // Buscar producto terminado que coincida
         const prod = productosTerminados.find(p =>
           p.tipo === item.tipoProducto &&
           p.aplicacion === item.aplicacion &&
@@ -407,12 +407,14 @@ function AppMain({ usuario, onLogout }) {
     }
     setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:"entregado",fechaEntrega}:p));
     await sb("pedidos","PATCH",{estado:"entregado",fecha_entrega:fechaEntrega},`?id=eq.${pedidoId}`);
+    toast("Pedido entregado ✓");
   }
   async function agregarPedido(pedido) {
     const id=`PED-${String(Date.now()).slice(-4)}`;
     const nuevo={...pedido,id,fecha:today(),estado:"pendiente"};
     setPedidos(prev=>[nuevo,...prev]);
     await sb("pedidos","POST",pedidoToDb(nuevo));
+    toast("Pedido guardado");
     setModal(null);
   }
 
@@ -425,14 +427,28 @@ function AppMain({ usuario, onLogout }) {
     return { subtotal, descuentoMonto: subtotal*desc/100, total: subtotal*(1-desc/100) };
   }
 
+  // Sistema de notificaciones toast
+  const [toasts, setToasts] = useState([]);
+  function toast(msg, tipo="ok") {
+    const id = Date.now();
+    setToasts(prev=>[...prev,{id,msg,tipo}]);
+    setTimeout(()=>setToasts(prev=>prev.filter(t=>t.id!==id)),3000);
+  }
+
   function imprimirPedido(pedido) {
+    setModal({tipo:"previewPedido", pedido});
+  }
+
+  function imprimirContenido(pedido) {
     const totales = calcTotalPedido(pedido);
     const win=window.open("","_blank");
     win.document.write(`<html><head><title>Pedido ${pedido.id}</title>
     <style>
       body{font-family:Arial,sans-serif;padding:32px;max-width:700px;margin:0 auto;color:#111}
-      h1{color:#1a5c2e;font-size:22px;margin-bottom:4px}
-      .sub{color:#6b7280;font-size:13px;margin-bottom:24px}
+      .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1a5c2e}
+      .logo{font-size:28px;font-weight:900;color:#1a5c2e;letter-spacing:-1px}
+      .logo span{color:#4a4a4a}
+      .pedido-num{font-size:13px;color:#6b7280;text-align:right}
       .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
       .blk{background:#f9fafb;border-radius:8px;padding:12px}
       .blk-t{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px}
@@ -445,8 +461,10 @@ function AppMain({ usuario, onLogout }) {
       .footer{margin-top:40px;border-top:1px solid #e5e7eb;padding-top:16px;font-size:12px;color:#9ca3af}
       @media print{body{padding:16px}}
     </style></head><body>
-    <h1>🏭 BurleteStock — Pedido ${pedido.id}</h1>
-    <div class="sub">Fecha: ${pedido.fecha} · Vía: ${pedido.via}</div>
+    <div class="header">
+      <div><div class="logo">TTA<span>Q</span> PLASTIC S.R.L.</div><div style="font-size:12px;color:#6b7280;margin-top:4px">Perfiles plásticos y burletes</div></div>
+      <div class="pedido-num"><div style="font-size:18px;font-weight:700;color:#1a5c2e">${pedido.id}</div><div>Fecha: ${pedido.fecha}</div><div>Vía: ${pedido.via}</div></div>
+    </div>
     <div class="grid">
       <div class="blk"><div class="blk-t">Cliente</div><div class="blk-v">${pedido.cliente}</div>${pedido.telefono?`<div style="font-size:13px;color:#6b7280;margin-top:4px">📞 ${pedido.telefono}</div>`:""}</div>
       <div class="blk"><div class="blk-t">Transporte</div><div class="blk-v">${pedido.transporte||"—"}</div></div>
@@ -466,7 +484,7 @@ function AppMain({ usuario, onLogout }) {
       ${pedido.descuento?`<div>Descuento ${pedido.descuento}%: <b>-${formatPesos(totales.descuentoMonto)}</b></div>`:""}
       <div class="total-final">TOTAL: ${formatPesos(totales.total)}</div>
     </div>
-    <div class="footer">Generado por BurleteStock · ${today()} · Dólar: $${precios.dolar}</div>
+    <div class="footer">TTAQ Plastic S.R.L. · BurleteStock · ${today()} · Dólar: $${precios.dolar}</div>
     <script>window.onload=()=>{window.print();}</script>
     </body></html>`);
     win.document.close();
@@ -670,8 +688,9 @@ function AppMain({ usuario, onLogout }) {
             onGuardarCliente={async(cli, esNuevo)=>{
               if (esNuevo) { setClientes(prev=>[...prev,cli]); await sb("clientes","POST",clienteToDb(cli)); }
               else { setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c)); await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); }
+              toast(esNuevo?"Cliente guardado":"Cliente actualizado");
             }}
-            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); await sb("clientes","DELETE",null,`?id=eq.${id}`); }}
+            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); await sb("clientes","DELETE",null,`?id=eq.${id}`); toast("Cliente eliminado","warn"); }}
             onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}
           />}
 
@@ -684,14 +703,17 @@ function AppMain({ usuario, onLogout }) {
                 const nuevo={...p,id};
                 setProductosTerminados(prev=>[...prev,nuevo]);
                 await sb("productos_terminados","POST",prodTermToDb(nuevo));
+                toast("Producto agregado");
               }}
               onActualizar={async(id,changes)=>{
                 setProductosTerminados(prev=>prev.map(p=>p.id===id?{...p,...changes}:p));
                 await sb("productos_terminados","PATCH",changes,`?id=eq.${id}`);
+                if (changes.stock!==undefined) toast("Stock actualizado");
               }}
               onEliminar={async id=>{
                 setProductosTerminados(prev=>prev.filter(p=>p.id!==id));
                 await sb("productos_terminados","DELETE",null,`?id=eq.${id}`);
+                toast("Producto eliminado","warn");
               }}
             />
           )}
@@ -762,6 +784,7 @@ function AppMain({ usuario, onLogout }) {
               onGuardarPrecios={async p=>{
                 setPrecios(p);
                 await sb("precios","PATCH",{dolar:p.dolar,ganancia:p.ganancia,ultima_actualizacion:p.ultimaActualizacion},"?id=eq.1");
+                toast("Precios actualizados");
               }}
               insumos={insumos}
               onUpdatePrecioInsumo={async(id,changes)=>{
@@ -834,21 +857,96 @@ function AppMain({ usuario, onLogout }) {
               const updated={...ins,...ch};
               setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
               await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+              toast("Insumo actualizado");
             }}
             onAddInsumo={async item=>{
               setInsumos(prev=>[...prev,item]);
               await sb("insumos","POST",insumoToDb(item));
+              toast("Insumo agregado");
             }}
             onDeleteInsumo={async id=>{
               setInsumos(prev=>prev.filter(i=>i.id!==id));
               await sb("insumos","DELETE",null,`?id=eq.${id}`);
+              toast("Insumo eliminado","warn");
             }}
           />}
 
         </div>
       </div>
 
-      {/* LOADING */}
+      {/* PREVIEW PEDIDO */}
+      {modal?.tipo==="previewPedido"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+          <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #e5e7eb",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontWeight:700,fontSize:16}}>📄 Vista previa — {modal.pedido.id}</div>
+              <button onClick={()=>setModal(null)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#6b7280"}}>✕</button>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:20}}>
+              {/* Preview content */}
+              <div style={{borderBottom:"2px solid #1a5c2e",paddingBottom:16,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontWeight:900,fontSize:22,color:"#1a5c2e",letterSpacing:-1}}>TTAQ<span style={{color:"#4a4a4a"}}>Q</span> PLASTIC S.R.L.</div>
+                  <div style={{fontSize:12,color:"#6b7280"}}>Perfiles plásticos y burletes</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontWeight:700,fontSize:18,color:"#1a5c2e"}}>{modal.pedido.id}</div>
+                  <div style={{fontSize:12,color:"#6b7280"}}>{modal.pedido.fecha}</div>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                <div style={{background:"#f9fafb",borderRadius:8,padding:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Cliente</div>
+                  <div style={{fontWeight:600}}>{modal.pedido.cliente}</div>
+                  {modal.pedido.telefono&&<div style={{fontSize:12,color:"#6b7280"}}>📞 {modal.pedido.telefono}</div>}
+                </div>
+                <div style={{background:"#f9fafb",borderRadius:8,padding:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:4}}>Transporte</div>
+                  <div style={{fontWeight:600}}>{modal.pedido.transporte||"—"}</div>
+                  {modal.pedido.via&&<div style={{fontSize:12,color:"#6b7280"}}>Vía: {modal.pedido.via}</div>}
+                </div>
+              </div>
+              {modal.pedido.obs&&<div style={{background:"#fef9c3",borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>📝 {modal.pedido.obs}</div>}
+              <table style={{width:"100%",borderCollapse:"collapse",marginBottom:16}}>
+                <thead><tr>{["Producto","Medidas","Cant.","Precio"].map(h=><th key={h} style={{background:"#1a5c2e",color:"white",padding:"8px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {modal.pedido.items.map((item,i)=>{
+                    const medida=item.ancho?`${item.ancho}×${item.alto}mm`:item.largo?`${item.largo}mm`:"—";
+                    const p=calcularPrecioItem(item,insumos,precios);
+                    return <tr key={i} style={{borderBottom:"1px solid #e5e7eb"}}>
+                      <td style={{padding:"8px 10px",fontSize:12}}>{item.tipoProducto}{item.aplicacion?" — "+item.aplicacion:""}</td>
+                      <td style={{padding:"8px 10px",fontSize:12}}>{medida}</td>
+                      <td style={{padding:"8px 10px",fontSize:12}}>{item.cantidad}</td>
+                      <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{p?formatPesos(p.precioVenta):"—"}</td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+              {(()=>{
+                const t=calcTotalPedido(modal.pedido);
+                return <div style={{background:"#f9fafb",borderRadius:8,padding:12,textAlign:"right"}}>
+                  {modal.pedido.descuento>0&&<div style={{fontSize:13,color:"#6b7280"}}>Subtotal: {formatPesos(t.subtotal)}</div>}
+                  {modal.pedido.descuento>0&&<div style={{fontSize:13,color:"#059669"}}>Descuento {modal.pedido.descuento}%: -{formatPesos(t.descuentoMonto)}</div>}
+                  <div style={{fontSize:18,fontWeight:800,color:"#1a5c2e"}}>TOTAL: {formatPesos(t.total)}</div>
+                </div>;
+              })()}
+            </div>
+            <div style={{padding:"14px 20px",borderTop:"1px solid #e5e7eb",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <button onClick={()=>setModal(null)} style={{padding:"11px",border:"2px solid #e5e7eb",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cerrar</button>
+              <button onClick={()=>imprimirContenido(modal.pedido)} style={{padding:"11px",background:"#1a5c2e",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>🖨️ Imprimir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOASTS */}
+      <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:500,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none"}}>
+        {toasts.map(t=>(
+          <div key={t.id} style={{background:t.tipo==="ok"?"#1a5c2e":t.tipo==="error"?"#ef4444":"#f59e0b",color:"white",borderRadius:20,padding:"10px 20px",fontSize:14,fontWeight:600,boxShadow:"0 4px 12px rgba(0,0,0,0.2)",whiteSpace:"nowrap"}}>
+            {t.tipo==="ok"?"✅":t.tipo==="error"?"❌":"⚠️"} {t.msg}
+          </div>
+        ))}
+      </div>
       {cargando&&(
         <div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500}}>
           <div style={{fontSize:48,marginBottom:16}}>🏭</div>
@@ -868,6 +966,7 @@ function AppMain({ usuario, onLogout }) {
         setMovimientos(prev=>[mov,...prev]);
         await sb("insumos","PATCH",{stock:nuevoStock},`?id=eq.${id}`);
         await sb("movimientos","POST",movToDb(mov));
+        toast("Entrada registrada");
         setModal(null);
       }} onClose={()=>setModal(null)}/>}
 
