@@ -652,7 +652,7 @@ function AppMain({ usuario, onLogout }) {
           {tab==="pedidos"&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={G.secTitle}>📦 Pedidos</div>
+                <div style={...G.secTitle,color:"#e6edf3"}>📦 Pedidos</div>
                 <button onClick={()=>setModal({tipo:"nuevoPedido"})} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
               </div>
               {["pendiente","en fabricacion","listo","entregado"].map(estado=>{
@@ -673,7 +673,7 @@ function AppMain({ usuario, onLogout }) {
                         <div key={pedido.id} style={{...G.card,borderLeft:`4px solid ${cfg.border}`}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                             <div>
-                              <div style={{fontWeight:700,fontSize:15}}>{pedido.cliente}</div>
+                              <div style={{fontWeight:700,fontSize:15,color:"#e6edf3"}}>{pedido.cliente}</div>
                               <div style={{fontSize:11,color:D.textSoft}}>{pedido.id} · {pedido.fecha} · {pedido.via}</div>
                               {pedido.telefono&&<div style={{fontSize:11,color:D.textSoft}}>📞 {pedido.telefono}</div>}
                               {pedido.transporte&&<div style={{fontSize:11,color:D.textSoft}}>🚚 {pedido.transporte}</div>}
@@ -688,12 +688,12 @@ function AppMain({ usuario, onLogout }) {
                             const mat=calcularMateriales(item);
                             const p=calcularPrecioItem(item,insumos,precios);
                             return (
-                              <div key={i} style={{background:"#1c2533",borderRadius:8,padding:"8px 10px",marginBottom:4,border:`1px solid ${D.border}`}}>
-                                <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
-                                  <span style={{fontWeight:600,color:D.text}}>{item.descripcion}</span>
-                                  <span style={{fontWeight:700,color:D.greenSoft}}>{p?formatPesos(p.precioVenta):"—"}</span>
+                              <div key={i} style={{background:"#1c2533",borderRadius:8,padding:"8px 10px",marginBottom:4,border:"1px solid #30363d"}}>
+                                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#e6edf3"}}>
+                                  <span style={{fontWeight:600,color:"#e6edf3"}}>{item.descripcion}</span>
+                                  <span style={{fontWeight:700,color:"#22c55e"}}>{p?formatPesos(p.precioVenta):"—"}</span>
                                 </div>
-                                <div style={{fontSize:11,color:D.textSoft,marginTop:2}}>
+                                <div style={{fontSize:11,color:"#8b949e",marginTop:2}}>
                                   x{item.cantidad}{item.presentacion?` (${item.presentacion})`:""}{mat?` · Perfil: ${mmToM(mat.perfilMm*(item.tipoProducto==="Angulo"&&item.presentacion?item.cantidad*20:item.cantidad))}m`:""}
                                 </div>
                               </div>
@@ -756,7 +756,7 @@ function AppMain({ usuario, onLogout }) {
           {tab==="insumos"&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={G.secTitle}>🧲 Insumos</div>
+                <div style={...G.secTitle,color:"#e6edf3"}>🧲 Insumos</div>
                 <button onClick={()=>setModal({tipo:"entradaInsumo"})} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Entrada</button>
               </div>
               <div style={{...G.card,background:"linear-gradient(135deg,#f0fdf4,#dcfce7)",marginBottom:16}}>
@@ -783,7 +783,7 @@ function AppMain({ usuario, onLogout }) {
                       <div key={item.id} style={G.card}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                           <div>
-                            <div style={{fontWeight:700,fontSize:13}}>{item.descripcion}</div>
+                            <div style={{fontWeight:700,fontSize:13,color:"#e6edf3"}}>{item.descripcion}</div>
                             <div style={{fontSize:11,color:D.textSoft}}>{item.id} · {item.proveedor}</div>
                             <div style={{fontSize:11,color:D.textSoft,marginTop:2}}>
                               {item.esIman?`USD ${item.precioDolarPorMetro||0}/m → ${formatPesos((item.precioDolarPorMetro||0)*precios.dolar)}/m`:`${formatPesos(item.precioPorMetro||0)}/m`}
@@ -836,7 +836,7 @@ function AppMain({ usuario, onLogout }) {
           {/* HISTORIAL */}
           {tab==="movimientos"&&(
             <div>
-              <div style={G.secTitle}>📋 Historial</div>
+              <div style={...G.secTitle,color:"#e6edf3"}>📋 Historial</div>
               {movimientos.map((m,i)=>(
                 <div key={i} style={{...G.card,borderLeft:`4px solid ${m.movimiento==="ENTRADA"?"#22c55e":"#f87171"}`}}>
                   <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -859,7 +859,7 @@ function AppMain({ usuario, onLogout }) {
           {/* IA */}
           {tab==="ia"&&(
             <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
-              <div style={G.secTitle}>🤖 Asistente IA</div>
+              <div style={...G.secTitle,color:"#e6edf3"}>🤖 Asistente IA</div>
               <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:10}}>
                 {chat.map((m,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
@@ -1024,7 +1024,7 @@ function PreciosTab({ precios, onGuardarPrecios, insumos, onUpdatePrecioInsumo }
 
   return (
     <div>
-      <div style={G.secTitle}>💰 Precios y cotización</div>
+      <div style={...G.secTitle,color:"#e6edf3"}>💰 Precios y cotización</div>
 
       {/* Cotización del día */}
       <div style={G.card}>
@@ -1115,7 +1115,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={G.secTitle}>👥 Clientes</div>
+        <div style={...G.secTitle,color:"#e6edf3"}>👥 Clientes</div>
         <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0,embalaje:""});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
       <input value={buscar} onChange={e=>setBuscar(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...G.inp,marginBottom:14}}/>
@@ -1123,7 +1123,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
         <div key={c.id} style={G.card}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:15}}>{c.nombre}</div>
+              <div style={{fontWeight:700,fontSize:15,color:"#e6edf3"}}>{c.nombre}</div>
               {c.telefono&&<div style={{fontSize:12,color:D.textSoft,marginTop:2}}>📞 {c.telefono}</div>}
               {c.direccion&&<div style={{fontSize:12,color:D.textSoft}}>📍 {c.direccion}</div>}
               {c.transporte&&<div style={{fontSize:12,color:D.textSoft}}>🚚 {c.transporte}</div>}
@@ -1345,11 +1345,11 @@ function ConfigInsumos({ insumos, onUpdateInsumo, onAddInsumo, onDeleteInsumo })
 
   return (
     <div>
-      <div style={G.secTitle}>⚙️ Configuración de insumos</div>
+      <div style={...G.secTitle,color:"#e6edf3"}>⚙️ Configuración de insumos</div>
       <button onClick={()=>{setEditando({nuevo:true});setForm({id:`INS-${String(Date.now()).slice(-3)}`,descripcion:"",unidad:"metro",stock:0,minimo:10,maximo:100,proveedor:"",esIman:false,esPerfil:false,esManguera:false});}} style={{...G.btn(),marginBottom:14}}>+ Agregar insumo</button>
       {insumos.map(item=>(
         <div key={item.id} style={{...G.card,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{item.descripcion}</div><div style={{fontSize:11,color:D.textSoft}}>{item.id} · {item.proveedor}</div></div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13,color:"#e6edf3"}}>{item.descripcion}</div><div style={{fontSize:11,color:D.textSoft}}>{item.id} · {item.proveedor}</div></div>
           <div style={{display:"flex",gap:8,marginLeft:10}}>
             <button onClick={()=>{setEditando({id:item.id});setForm({...item});}} style={{background:"#0d2818",border:"1px solid #166534",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#1a5c2e",cursor:"pointer"}}>✏️</button>
             <button onClick={()=>setConfirmDel({id:item.id,nombre:item.descripcion})} style={{background:"#2d1515",border:"1px solid #7f1d1d",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#f87171",cursor:"pointer"}}>🗑️</button>
@@ -1483,7 +1483,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div style={G.secTitle}>📈 Estadísticas</div>
+        <div style={...G.secTitle,color:"#e6edf3"}>📈 Estadísticas</div>
         <select style={{border:"1px solid #30363d",borderRadius:8,padding:"6px 10px",fontSize:14,background:"white",outline:"none"}} value={anio} onChange={e=>setAnio(Number(e.target.value))}>
           {(aniosDisponibles.length>0?aniosDisponibles:[new Date().getFullYear()]).map(a=><option key={a} value={a}>{a}</option>)}
         </select>
@@ -1688,7 +1688,7 @@ function UsuariosTab({ usuarioActual }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={G.secTitle}>👤 Usuarios</div>
+        <div style={...G.secTitle,color:"#e6edf3"}>👤 Usuarios</div>
         <button onClick={()=>{setEditando(true);setForm({rol:"equipo"});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
 
@@ -1700,7 +1700,7 @@ function UsuariosTab({ usuarioActual }) {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{fontWeight:700,fontSize:14}}>{u.nombre}</div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#e6edf3"}}>{u.nombre}</div>
                   {u.id===usuarioActual.id&&<span style={{background:"#dbeafe",color:"#1e40af",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Vos</span>}
                   <span style={{background:u.rol==="admin"?"#fef9c3":"#f0fdf4",color:u.rol==="admin"?"#854d0e":"#166534",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>{u.rol==="admin"?"⭐ Admin":"👷 Equipo"}</span>
                 </div>
@@ -1822,7 +1822,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={G.secTitle}>📦 Stock de productos</div>
+        <div style={...G.secTitle,color:"#e6edf3"}>📦 Stock de productos</div>
         <button onClick={abrirNuevo} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Agregar</button>
       </div>
 
