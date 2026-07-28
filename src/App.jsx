@@ -677,7 +677,7 @@ function AppMain({ usuario, onLogout }) {
                               <div style={{fontSize:11,color:D.textSoft}}>{pedido.id} · {pedido.fecha} · {pedido.via}</div>
                               {pedido.telefono&&<div style={{fontSize:11,color:D.textSoft}}>📞 {pedido.telefono}</div>}
                               {pedido.transporte&&<div style={{fontSize:11,color:D.textSoft}}>🚚 {pedido.transporte}</div>}
-                              {pedido.descuento>0&&<div style={{fontSize:11,color:"#059669"}}>🏷️ Descuento {pedido.descuento}%</div>}
+                              {pedido.descuento>0&&<div style={{fontSize:11,color:"#22c55e"}}>🏷️ Descuento {pedido.descuento}%</div>}
                             </div>
                             <div style={{textAlign:"right"}}>
                               <div style={{fontWeight:800,fontSize:16,color:D.greenSoft}}>{formatPesos(totales.total)}</div>
@@ -688,9 +688,9 @@ function AppMain({ usuario, onLogout }) {
                             const mat=calcularMateriales(item);
                             const p=calcularPrecioItem(item,insumos,precios);
                             return (
-                              <div key={i} style={{background:"#1c2533",borderRadius:8,padding:"8px 10px",marginBottom:4}}>
+                              <div key={i} style={{background:"#1c2533",borderRadius:8,padding:"8px 10px",marginBottom:4,border:`1px solid ${D.border}`}}>
                                 <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
-                                  <span style={{fontWeight:600}}>{item.descripcion}</span>
+                                  <span style={{fontWeight:600,color:D.text}}>{item.descripcion}</span>
                                   <span style={{fontWeight:700,color:D.greenSoft}}>{p?formatPesos(p.precioVenta):"—"}</span>
                                 </div>
                                 <div style={{fontSize:11,color:D.textSoft,marginTop:2}}>
@@ -933,16 +933,16 @@ function AppMain({ usuario, onLogout }) {
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 <div style={{background:"#1c2533",borderRadius:8,padding:12}}>
                   <div style={{fontSize:11,fontWeight:700,color:D.textSoft,textTransform:"uppercase",marginBottom:4}}>Cliente</div>
-                  <div style={{fontWeight:600}}>{modal.pedido.cliente}</div>
+                  <div style={{fontWeight:600,color:"#e6edf3"}}>{modal.pedido.cliente}</div>
                   {modal.pedido.telefono&&<div style={{fontSize:12,color:D.textSoft}}>📞 {modal.pedido.telefono}</div>}
                 </div>
                 <div style={{background:"#1c2533",borderRadius:8,padding:12}}>
                   <div style={{fontSize:11,fontWeight:700,color:D.textSoft,textTransform:"uppercase",marginBottom:4}}>Transporte</div>
-                  <div style={{fontWeight:600}}>{modal.pedido.transporte||"—"}</div>
+                  <div style={{fontWeight:600,color:"#e6edf3"}}>{modal.pedido.transporte||"—"}</div>
                   {modal.pedido.via&&<div style={{fontSize:12,color:D.textSoft}}>Vía: {modal.pedido.via}</div>}
                 </div>
               </div>
-              {modal.pedido.obs&&<div style={{background:"#292214",borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>📝 {modal.pedido.obs}</div>}
+              {modal.pedido.obs&&<div style={{background:"#292214",borderRadius:8,padding:12,marginBottom:16,fontSize:13,color:"#e6edf3"}}>📝 {modal.pedido.obs}</div>}
               <table style={{width:"100%",borderCollapse:"collapse",marginBottom:16}}>
                 <thead><tr>{["Producto","Medidas","Cant.","Precio"].map(h=><th key={h} style={{background:D.blue,color:"white",padding:"8px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}</tr></thead>
                 <tbody>
@@ -950,9 +950,9 @@ function AppMain({ usuario, onLogout }) {
                     const medida=item.ancho?`${item.ancho}×${item.alto}mm`:item.largo?`${item.largo}mm`:"—";
                     const p=calcularPrecioItem(item,insumos,precios);
                     return <tr key={i} style={{borderBottom:`1px solid ${D.border}`}}>
-                      <td style={{padding:"8px 10px",fontSize:12}}>{item.tipoProducto}{item.aplicacion?" — "+item.aplicacion:""}</td>
-                      <td style={{padding:"8px 10px",fontSize:12}}>{medida}</td>
-                      <td style={{padding:"8px 10px",fontSize:12}}>{item.cantidad}</td>
+                      <td style={{padding:"8px 10px",fontSize:12,color:"#e6edf3"}}>{item.tipoProducto}{item.aplicacion?" — "+item.aplicacion:""}</td>
+                      <td style={{padding:"8px 10px",fontSize:12,color:"#e6edf3"}}>{medida}</td>
+                      <td style={{padding:"8px 10px",fontSize:12,color:"#e6edf3"}}>{item.cantidad}</td>
                       <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{p?formatPesos(p.precioVenta):"—"}</td>
                     </tr>;
                   })}
@@ -962,12 +962,12 @@ function AppMain({ usuario, onLogout }) {
                 const t=calcTotalPedido(modal.pedido);
                 return <div style={{background:"#1c2533",borderRadius:8,padding:12,textAlign:"right"}}>
                   {modal.pedido.descuento>0&&<div style={{fontSize:13,color:D.textSoft}}>Subtotal: {formatPesos(t.subtotal)}</div>}
-                  {modal.pedido.descuento>0&&<div style={{fontSize:13,color:"#059669"}}>Descuento {modal.pedido.descuento}%: -{formatPesos(t.descuentoMonto)}</div>}
+                  {modal.pedido.descuento>0&&<div style={{fontSize:13,color:"#22c55e"}}>Descuento {modal.pedido.descuento}%: -{formatPesos(t.descuentoMonto)}</div>}
                   <div style={{fontSize:18,fontWeight:800,color:D.greenSoft}}>TOTAL: {formatPesos(t.total)}</div>
                 </div>;
               })()}
             </div>
-            <div style={{padding:"14px 20px",borderTop:"1px solid #e5e7eb",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{padding:"14px 20px",borderTop:"1px solid #30363d",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <button onClick={()=>setModal(null)} style={{padding:"11px",border:"1px solid #30363d",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cerrar</button>
               <button onClick={()=>imprimirContenido(modal.pedido)} style={{padding:"11px",background:D.blue,color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>🖨️ Imprimir</button>
             </div>
@@ -1128,7 +1128,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
               {c.direccion&&<div style={{fontSize:12,color:D.textSoft}}>📍 {c.direccion}</div>}
               {c.transporte&&<div style={{fontSize:12,color:D.textSoft}}>🚚 {c.transporte}</div>}
               {c.embalaje&&<div style={{fontSize:12,color:D.textSoft}}>📦 Embalaje: {c.embalaje}</div>}
-              {c.descuento>0&&<div style={{fontSize:12,color:"#059669",fontWeight:600}}>🏷️ {c.descuento}% descuento</div>}
+              {c.descuento>0&&<div style={{fontSize:12,color:"#22c55e",fontWeight:600}}>🏷️ {c.descuento}% descuento</div>}
             </div>
             <div style={{display:"flex",gap:6,marginLeft:10,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={()=>onNuevoPedido(c)} style={{background:"#0d2818",border:"1px solid #166534",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#22c55e",fontWeight:600,cursor:"pointer"}}>+ Pedido</button>
@@ -1195,7 +1195,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           <div><label style={G.lbl}>Descuento (%)</label><input type="number" min={0} max={100} style={G.inp} value={descuento} onChange={e=>setDescuento(Number(e.target.value))}/></div>
           <div style={{display:"flex",alignItems:"flex-end",paddingBottom:10}}>
-            {descuento>0&&<div style={{fontSize:13,color:"#059669",fontWeight:600}}>🏷️ {descuento}% de descuento</div>}
+            {descuento>0&&<div style={{fontSize:13,color:"#22c55e",fontWeight:600}}>🏷️ {descuento}% de descuento</div>}
           </div>
         </div>
 
@@ -1261,7 +1261,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
         {/* Total */}
         <div style={{background:"#f0fdf4",borderRadius:10,padding:"12px 14px",marginBottom:14,textAlign:"right"}}>
           {descuento>0&&<div style={{fontSize:13,color:D.textSoft}}>Subtotal: {formatPesos(subtotal)}</div>}
-          {descuento>0&&<div style={{fontSize:13,color:"#059669"}}>Descuento {descuento}%: -{formatPesos(subtotal*descuento/100)}</div>}
+          {descuento>0&&<div style={{fontSize:13,color:"#22c55e"}}>Descuento {descuento}%: -{formatPesos(subtotal*descuento/100)}</div>}
           <div style={{fontSize:18,fontWeight:800,color:D.greenSoft}}>TOTAL: {formatPesos(total)}</div>
         </div>
 
