@@ -51,9 +51,9 @@ function insumoFromDb(r) {
   return { id:r.id, descripcion:r.descripcion, unidad:r.unidad, stock:Number(r.stock), minimo:Number(r.minimo), maximo:Number(r.maximo), proveedor:r.proveedor, esIman:r.es_iman, esPerfil:r.es_perfil, esManguera:r.es_manguera, precioPorMetro:Number(r.precio_por_metro), precioDolarPorMetro:Number(r.precio_dolar_por_metro) };
 }
 function clienteToDb(c) {
-  return { id:c.id, nombre:c.nombre, telefono:c.telefono||"", direccion:c.direccion||"", transporte:c.transporte||"", descuento:c.descuento||0 };
+  return { id:c.id, nombre:c.nombre, telefono:c.telefono||"", direccion:c.direccion||"", transporte:c.transporte||"", descuento:c.descuento||0, embalaje:c.embalaje||"" };
 }
-function clienteFromDb(r) { return { id:r.id, nombre:r.nombre, telefono:r.telefono, direccion:r.direccion, transporte:r.transporte, descuento:Number(r.descuento) }; }
+function clienteFromDb(r) { return { id:r.id, nombre:r.nombre, telefono:r.telefono, direccion:r.direccion, transporte:r.transporte, descuento:Number(r.descuento), embalaje:r.embalaje||"" }; }
 function pedidoToDb(p) {
   return { id:p.id, fecha:p.fecha, fecha_entrega:p.fechaEntrega||null, cliente_id:p.clienteId||null, cliente:p.cliente, telefono:p.telefono||"", transporte:p.transporte||"", descuento:p.descuento||0, via:p.via||"", estado:p.estado, obs:p.obs||"", items:p.items };
 }
@@ -959,6 +959,14 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
         <label style={G.lbl}>Transporte habitual</label>
         <input style={G.inp} value={form.transporte||""} onChange={e=>setForm(f=>({...f,transporte:e.target.value}))} placeholder="Andreani, OCA..." list="tlist"/>
         <datalist id="tlist">{TRANSPORTES.map(t=><option key={t} value={t}/>)}</datalist>
+        <label style={G.lbl}>Tipo de embalaje</label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+          {["Caja","Paquete","Jaula","Sin embalaje"].map(e=>(
+            <button key={e} onClick={()=>setForm(f=>({...f,embalaje:f.embalaje===e?"":e}))} style={{padding:"8px 4px",border:`2px solid ${form.embalaje===e?"#1a5c2e":"#e5e7eb"}`,borderRadius:8,background:form.embalaje===e?"#f0fdf4":"white",color:form.embalaje===e?"#1a5c2e":"#374151",fontWeight:form.embalaje===e?700:400,cursor:"pointer",fontSize:12}}>
+              {e==="Caja"?"📦 Caja":e==="Paquete"?"📫 Paquete":e==="Jaula"?"🧺 Jaula":"— Sin embalaje"}
+            </button>
+          ))}
+        </div>
         <label style={G.lbl}>Descuento (%)</label>
         <input type="number" min={0} max={100} style={G.inp} value={form.descuento||0} onChange={e=>setForm(f=>({...f,descuento:Number(e.target.value)}))} placeholder="0"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
@@ -973,7 +981,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div style={G.secTitle}>👥 Clientes</div>
-        <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0});}} style={{background:"#1a5c2e",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
+        <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0,embalaje:""});}} style={{background:"#1a5c2e",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
       <input value={buscar} onChange={e=>setBuscar(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...G.inp,marginBottom:14}}/>
       {filtrados.map(c=>(
@@ -984,6 +992,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
               {c.telefono&&<div style={{fontSize:12,color:"#6b7280",marginTop:2}}>📞 {c.telefono}</div>}
               {c.direccion&&<div style={{fontSize:12,color:"#6b7280"}}>📍 {c.direccion}</div>}
               {c.transporte&&<div style={{fontSize:12,color:"#6b7280"}}>🚚 {c.transporte}</div>}
+              {c.embalaje&&<div style={{fontSize:12,color:"#6b7280"}}>📦 Embalaje: {c.embalaje}</div>}
               {c.descuento>0&&<div style={{fontSize:12,color:"#059669",fontWeight:600}}>🏷️ {c.descuento}% descuento</div>}
             </div>
             <div style={{display:"flex",gap:6,marginLeft:10,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
