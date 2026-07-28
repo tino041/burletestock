@@ -540,49 +540,66 @@ function AppMain({ usuario, onLogout }) {
   const currentTab=tabs.find(t=>t.id===tab);
 
   return (
-    <div style={{fontFamily:"sans-serif",background:D.bg,height:"100vh",maxWidth:1200,margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",color:D.text}}>
-      {/* HEADER */}
-      <div style={{background:D.bgCard,padding:"12px 16px",color:D.text,flexShrink:0,borderBottom:`1px solid ${D.border}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,maxWidth:1200,margin:"0 auto"}}>
-          <button onClick={()=>setMenuOpen(o=>!o)} style={{background:D.bgCard2,border:`1px solid ${D.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",color:D.textSoft,fontSize:18,lineHeight:1}}>
+    <div style={{fontFamily:"'Inter',system-ui,sans-serif",background:D.bg,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",color:D.text}}>
+
+      {/* TOPBAR */}
+      <header style={{background:D.bgCard,borderBottom:`1px solid ${D.border}`,padding:"0 16px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={()=>setMenuOpen(o=>!o)} style={{background:D.bgCard2,border:`1px solid ${D.border}`,borderRadius:7,padding:"7px 10px",cursor:"pointer",color:D.textSoft,fontSize:16,lineHeight:1}}>
             {menuOpen?"✕":"☰"}
           </button>
-          <span style={{fontSize:22}}>🏭</span>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:700,fontSize:17,color:D.text}}>BurleteStock</div>
-            <div style={{fontSize:11,color:D.textSoft}}>{currentTab?.icon} {currentTab?.label}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,color:D.textSoft,fontWeight:600}}>{usuario.nombre}</div>
-            <div style={{fontSize:10,color:D.textDim}}>{esAdmin?"Administrador":"Equipo"}</div>
-            {esAdmin&&(alertasInsumos.length+pedidosPendientes.length)>0&&<div style={{background:"#7f1d1d",color:"#f87171",borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700,marginTop:2}}>{alertasInsumos.length+pedidosPendientes.length} alertas</div>}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:26,height:26,background:D.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🏭</div>
+            <div>
+              <span style={{fontWeight:800,fontSize:14,color:D.text,letterSpacing:"-0.3px"}}>BurleteStock</span>
+              <span style={{fontSize:11,color:D.textDim,marginLeft:6}}>/ {currentTab?.label}</span>
+            </div>
           </div>
         </div>
-      </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          {esAdmin&&<div style={{fontSize:12,color:D.textSoft}}>💵 <b style={{color:D.text}}>${precios.dolar?.toLocaleString("es-AR")}</b></div>}
+          {esAdmin&&(alertasInsumos.length+pedidosPendientes.length)>0&&<div style={{background:"#7f1d1d",color:"#fca5a5",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600}}>{alertasInsumos.length+pedidosPendientes.length} alertas</div>}
+          <div style={{width:28,height:28,background:`${D.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:D.blue}}>{usuario.nombre.charAt(0).toUpperCase()}</div>
+        </div>
+      </header>
 
-      {/* MENÚ LATERAL */}
+      {/* MENÚ LATERAL DESLIZABLE */}
       {menuOpen&&(
         <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)"}} onClick={()=>setMenuOpen(false)}>
-          <div style={{position:"absolute",top:0,left:0,bottom:0,width:260,background:D.bgCard,boxShadow:`4px 0 24px rgba(0,0,0,0.5)`,display:"flex",flexDirection:"column",border:`1px solid ${D.border}`}} onClick={e=>e.stopPropagation()}>
-            <div style={{background:D.bgCard2,padding:"28px 20px 20px",borderBottom:`1px solid ${D.border}`}}>
-              <div style={{fontSize:28}}>🏭</div>
-              <div style={{fontWeight:700,fontSize:18,color:D.text,marginTop:6}}>BurleteStock</div>
-              <div style={{fontSize:12,color:D.textSoft,marginTop:2}}>{usuario.nombre} · {esAdmin?"Administrador":"Equipo"}</div>
-              {esAdmin&&<div style={{fontSize:12,color:D.greenSoft,marginTop:6,fontWeight:600}}>💰 Stock: {formatPesos(valorStock)}</div>}
+          <div style={{position:"absolute",top:0,left:0,bottom:0,width:240,background:D.bgCard,boxShadow:`4px 0 32px rgba(0,0,0,0.6)`,display:"flex",flexDirection:"column",border:`1px solid ${D.border}`}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"20px 16px 14px",borderBottom:`1px solid ${D.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:32,height:32,background:D.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🏭</div>
+                <div>
+                  <div style={{fontWeight:800,fontSize:14,color:D.text,letterSpacing:"-0.3px"}}>BurleteStock</div>
+                  <div style={{fontSize:10,color:D.textDim,letterSpacing:"0.5px",textTransform:"uppercase"}}>TTAQ Plastic</div>
+                </div>
+              </div>
+              {esAdmin&&<div style={{fontSize:12,color:D.greenSoft,marginTop:10,fontWeight:600}}>💰 {formatPesos(valorStock)}</div>}
             </div>
-            <div style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
-              {tabs.map(t=>(
-                <button key={t.id} onClick={()=>{setTab(t.id);setMenuOpen(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"11px 14px",border:"none",borderRadius:10,cursor:"pointer",marginBottom:2,textAlign:"left",background:tab===t.id?`${D.blue}22`:"transparent",color:tab===t.id?D.text:D.textSoft,fontWeight:tab===t.id?700:400,fontSize:14}}>
-                  <span style={{fontSize:18}}>{t.icon}</span>
-                  <span style={{flex:1}}>{t.label}</span>
-                  {t.badge>0&&<span style={{background:"#7f1d1d",color:"#f87171",borderRadius:10,padding:"2px 8px",fontSize:11,fontWeight:700}}>{t.badge}</span>}
-                  {tab===t.id&&<span style={{color:D.blue,fontSize:8}}>●</span>}
-                </button>
-              ))}
-            </div>
+            <nav style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
+              {tabs.map(t=>{
+                const active=tab===t.id;
+                return (
+                  <button key={t.id} onClick={()=>{setTab(t.id);setMenuOpen(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 12px",border:"none",borderRadius:7,cursor:"pointer",marginBottom:2,textAlign:"left",background:active?`${D.blue}18`:"transparent",color:active?D.text:D.textSoft,fontWeight:active?600:400,fontSize:13,position:"relative"}}>
+                    {active&&<div style={{position:"absolute",left:0,top:"18%",bottom:"18%",width:2.5,background:D.blue,borderRadius:"0 2px 2px 0"}}/>}
+                    <span style={{fontSize:15}}>{t.icon}</span>
+                    <span style={{flex:1}}>{t.label}</span>
+                    {t.badge>0&&<span style={{background:"#7f1d1d",color:"#fca5a5",borderRadius:5,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t.badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
             <div style={{padding:"12px 8px",borderTop:`1px solid ${D.border}`}}>
-              <button onClick={onLogout} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"11px 14px",border:"none",borderRadius:10,cursor:"pointer",background:"#2d1515",color:"#f87171",fontWeight:600,fontSize:14}}>
-                <span style={{fontSize:18}}>🚪</span> Cerrar sesión
+              <div style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:7,background:D.bgCard2,marginBottom:6}}>
+                <div style={{width:30,height:30,background:`${D.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:D.blue}}>{usuario.nombre.charAt(0).toUpperCase()}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:12,color:D.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{usuario.nombre}</div>
+                  <div style={{fontSize:10,color:D.textDim}}>{esAdmin?"Administrador":"Equipo"}</div>
+                </div>
+              </div>
+              <button onClick={onLogout} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 12px",border:"none",borderRadius:7,cursor:"pointer",background:"#2d1515",color:"#f87171",fontWeight:600,fontSize:13}}>
+                <span>🚪</span> Cerrar sesión
               </button>
             </div>
           </div>
@@ -590,23 +607,24 @@ function AppMain({ usuario, onLogout }) {
       )}
 
       {/* CONTENIDO */}
-      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:D.bg}}>
-        <div style={{padding:"16px",maxWidth:800,margin:"0 auto"}}>
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+        <div style={{padding:"20px 16px",maxWidth:900,margin:"0 auto"}}>
+        <div>
 
           {/* DASHBOARD */}
           {tab==="dashboard"&&(
             <div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
                 {[
-                  {label:"Pedidos pendientes", value:pedidosPendientes.length, color:pedidosPendientes.length>0?"#60a5fa":"#22c55e", icon:"📦", action:()=>setTab("pedidos")},
-                  {label:"Insumos a reponer",  value:alertasInsumos.length,    color:alertasInsumos.length>0?"#f87171":"#22c55e",   icon:"⚠️", action:()=>setTab("insumos")},
-                  {label:"Valor del stock",    value:formatPesos(valorStock),   color:"#a78bfa", icon:"💰", action:()=>setTab("precios")},
-                  {label:"Clientes",           value:clientes.length,           color:"#22c55e", icon:"👥", action:()=>setTab("clientes")},
+                  {label:"Pedidos pendientes", value:pedidosPendientes.length, color:"#60a5fa", sub:`${pedidos.filter(p=>p.estado==="en fabricacion").length} en fabricación`, action:()=>setTab("pedidos")},
+                  {label:"Insumos a reponer",  value:alertasInsumos.length,    color:alertasInsumos.length>0?"#f87171":"#22c55e", sub:"materiales críticos", action:()=>setTab("insumos")},
+                  {label:"Valor del stock",    value:formatPesos(valorStock),   color:"#a78bfa", sub:"al dólar del día", action:()=>setTab("precios")},
+                  {label:"Clientes",           value:clientes.length,           color:"#22c55e", sub:"registrados", action:()=>setTab("clientes")},
                 ].map((c,i)=>(
-                  <div key={i} onClick={c.action} style={{...G.card,cursor:c.action?"pointer":"default",marginBottom:0}}>
-                    <div style={{fontSize:24}}>{c.icon}</div>
-                    <div style={{fontSize:typeof c.value==="string"?18:30,fontWeight:800,color:c.color,lineHeight:1.2,marginTop:4}}>{c.value}</div>
-                    <div style={{fontSize:12,color:D.textSoft,marginTop:2}}>{c.label}</div>
+                  <div key={i} onClick={c.action} style={{...G.card,cursor:"pointer",marginBottom:0,padding:"16px"}}>
+                    <div style={{fontSize:11,color:D.textSoft,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:8}}>{c.label}</div>
+                    <div style={{fontSize:typeof c.value==="string"&&c.value.length>8?17:26,fontWeight:800,color:c.color,lineHeight:1,letterSpacing:"-0.5px"}}>{c.value}</div>
+                    <div style={{fontSize:11,color:D.textDim,marginTop:5}}>{c.sub}</div>
                   </div>
                 ))}
               </div>
@@ -888,12 +906,14 @@ function AppMain({ usuario, onLogout }) {
           />}
 
         </div>
+        </div>
+      </div>
       </div>
 
       {/* PREVIEW PEDIDO */}
       {modal?.tipo==="previewPedido"&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
-          <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          <div style={{background:D.bgCard,borderRadius:16,width:"100%",maxWidth:600,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",border:`1px solid ${D.border}`}}>
             <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontWeight:700,fontSize:16}}>📄 Vista previa — {modal.pedido.id}</div>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:D.textSoft}}>✕</button>
@@ -986,7 +1006,7 @@ function AppMain({ usuario, onLogout }) {
         setModal(null);
       }} onClose={()=>setModal(null)}/>}
 
-      <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}*{box-sizing:border-box}input:focus,select:focus{border-color:#1a5c2e!important}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}*{box-sizing:border-box}input:focus,select:focus{border-color:#2563eb!important}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}`}</style>
     </div>
   );
 }
