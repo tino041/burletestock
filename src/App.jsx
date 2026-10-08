@@ -42,10 +42,10 @@ async function getUsuario(email) {
   return data?.[0] || null;
 }
 
-// Session helpers
-function saveSession(user) { try { localStorage.setItem("bs_user", JSON.stringify(user)); } catch(e){} }
-function loadSession() { try { const s = localStorage.getItem("bs_user"); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
-function clearSession() { try { localStorage.removeItem("bs_user"); } catch(e){} }
+// Session helpers — solo sessionStorage (se borra al cerrar la pestaña/app)
+function saveSession(user) { try { sessionStorage.setItem("bs_user", JSON.stringify(user)); } catch(e){} }
+function loadSession() { try { const s = sessionStorage.getItem("bs_user"); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+function clearSession() { try { sessionStorage.removeItem("bs_user"); } catch(e){} }
 
 // Mapeo entre formato app ↔ Supabase
 function insumoToDb(i) {
@@ -181,36 +181,37 @@ function getEstadoInsumo(i) {
   if (i.stock >= i.maximo) return "lleno";
   return "ok";
 }
-// ── PALETA DARK MODE ─────────────────────────────────────
+// ── PALETA DARK MODE PROFESIONAL ──────────────────────────
 const D = {
-  bg:       "#0d1117",   // fondo principal
-  bgCard:   "#161b22",   // tarjetas
-  bgCard2:  "#1c2128",   // tarjetas secundarias
-  border:   "#30363d",   // bordes
-  blue:     "#2563eb",   // acento azul
-  blueHov:  "#1d4ed8",
-  green:    "#1a7c3e",   // verde TTAQ
-  greenSoft:"#22c55e",   // verde claro
-  red:      "#ef4444",
-  yellow:   "#f59e0b",
-  text:     "#e6edf3",   // texto principal
-  textSoft: "#8b949e",   // texto secundario
-  textDim:  "#484f58",   // texto tenue
+  bg:       "#0a0c10",   // fondo principal — casi negro
+  bgCard:   "#111318",   // tarjetas
+  bgCard2:  "#181c23",   // inputs / fondos secundarios
+  border:   "#252830",   // bordes sutiles
+  blue:     "#3b82f6",   // acento azul
+  blueHov:  "#2563eb",
+  green:    "#16a34a",   // verde TTAQ
+  greenSoft:"#4ade80",   // verde claro
+  accent:   "#3b82f6",
+  red:      "#f87171",
+  yellow:   "#fbbf24",
+  text:     "#f1f3f9",   // texto principal
+  textSoft: "#6b7280",   // texto secundario
+  textDim:  "#374151",   // texto tenue
 };
 
 const estadoBadge = {
-  ok:      { label:"✅ OK",       bg:"#0d2818", color:"#22c55e" },
-  reponer: { label:"⚠️ Reponer",  bg:"#2d1515", color:"#f87171" },
-  lleno:   { label:"📦 Lleno",   bg:"#292214", color:"#fbbf24" },
+  ok:      { label:"OK",      bg:"rgba(74,222,128,0.08)", color:"#4ade80" },
+  reponer: { label:"Reponer", bg:"rgba(248,113,113,0.08)", color:"#f87171" },
+  lleno:   { label:"Lleno",   bg:"rgba(251,191,36,0.08)",  color:"#fbbf24" },
 };
 
 const G = {
-  card:     { background:D.bgCard, borderRadius:12, padding:16, boxShadow:`0 1px 0 ${D.border}`, marginBottom:10, border:`1px solid ${D.border}` },
-  inp:      { width:"100%", border:`1.5px solid ${D.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, marginBottom:10, background:D.bgCard2, outline:"none", fontFamily:"sans-serif", color:D.text },
-  lbl:      { fontSize:12, fontWeight:600, color:D.textSoft, display:"block", marginBottom:3 },
-  btn:      (bg=D.blue, color="white") => ({ background:bg, color, border:"none", borderRadius:10, padding:"11px 16px", fontWeight:700, cursor:"pointer", fontSize:14, width:"100%" }),
-  secTitle: { fontWeight:700, fontSize:16, color:D.text, marginBottom:14 },
-  tag:      (bg,color) => ({ background:bg, color, borderRadius:20, padding:"3px 10px", fontSize:11, fontWeight:700, whiteSpace:"nowrap" }),
+  card:     { background:D.bgCard, borderRadius:10, padding:"14px 16px", marginBottom:8, border:`1px solid ${D.border}` },
+  inp:      { width:"100%", border:`1px solid ${D.border}`, borderRadius:7, padding:"9px 12px", fontSize:14, marginBottom:10, background:D.bgCard2, outline:"none", fontFamily:"'Inter',sans-serif", color:D.text, transition:"border-color 0.15s" },
+  lbl:      { fontSize:11, fontWeight:600, color:D.textSoft, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:"0.05em" },
+  btn:      (bg=D.blue, color="white") => ({ background:bg, color, border:"none", borderRadius:8, padding:"10px 16px", fontWeight:600, cursor:"pointer", fontSize:14, width:"100%" }),
+  secTitle: { fontWeight:700, fontSize:15, color:D.text, marginBottom:14, letterSpacing:"-0.2px" },
+  tag:      (bg,color) => ({ background:bg, color, borderRadius:5, padding:"3px 8px", fontSize:11, fontWeight:600, whiteSpace:"nowrap" }),
 };
 
 const TIPOS       = ["Marco","Burlete","Angulo","Tira","Manguera"];
@@ -473,52 +474,214 @@ function AppMain({ usuario, onLogout }) {
     setModal({tipo:"previewPedido", pedido});
   }
 
-  function imprimirContenido(pedido) {
-    const totales = calcTotalPedido(pedido);
-    const win=window.open("","_blank");
-    win.document.write(`<html><head><title>Pedido ${pedido.id}</title>
+  // ── ORDEN DE FABRICACIÓN — para el operario (SIN precios)
+  function imprimirOrdenFabricacion(pedido) {
+    const win = window.open("","_blank");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Orden ${pedido.id}</title>
     <style>
-      body{font-family:Arial,sans-serif;padding:32px;max-width:700px;margin:0 auto;color:#111}
-      .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1a5c2e}
-      .logo{font-size:28px;font-weight:900;color:#1a5c2e;letter-spacing:-1px}
-      .logo span{color:#4a4a4a}
-      .pedido-num{font-size:13px;color:#6b7280;text-align:right}
-      .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-      .blk{background:#f9fafb;border-radius:8px;padding:12px}
-      .blk-t{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px}
-      .blk-v{font-size:14px;font-weight:600}
-      table{width:100%;border-collapse:collapse;margin-bottom:16px}
-      th{background:#1a5c2e;color:white;padding:10px 12px;text-align:left;font-size:13px}
-      td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px}
-      .totales{background:#f9fafb;border-radius:8px;padding:16px;text-align:right}
-      .total-final{font-size:18px;font-weight:800;color:#1a5c2e}
-      .footer{margin-top:40px;border-top:1px solid #e5e7eb;padding-top:16px;font-size:12px;color:#9ca3af}
-      @media print{body{padding:16px}}
+      *{box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;padding:28px 32px;max-width:720px;margin:0 auto;color:#111;font-size:14px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a5c2e;padding-bottom:14px;margin-bottom:20px}
+      .marca{font-size:26px;font-weight:900;color:#1a5c2e;letter-spacing:-0.5px;line-height:1}
+      .marca-sub{font-size:12px;color:#6b7280;margin-top:3px}
+      .orden-badge{background:#1a5c2e;color:white;border-radius:8px;padding:8px 14px;text-align:right}
+      .orden-id{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+      .orden-tipo{font-size:11px;opacity:0.85;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+      .blk{background:#f4f6f4;border-radius:6px;padding:10px 14px;border-left:3px solid #1a5c2e}
+      .blk-t{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px}
+      .blk-v{font-size:14px;font-weight:700;color:#111}
+      .obs{background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:#92400e}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      thead tr{background:#1a5c2e;color:white}
+      th{padding:10px 12px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+      td{padding:11px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;vertical-align:top}
+      tr:nth-child(even) td{background:#f9fafb}
+      .prod-tipo{font-weight:700;font-size:14px;color:#111}
+      .prod-desc{font-size:12px;color:#6b7280;margin-top:2px}
+      .mat{background:#edf7ed;border-radius:5px;padding:5px 8px;font-size:12px;color:#166534;margin-top:5px;font-weight:600}
+      .firma-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb}
+      .firma-box{text-align:center}
+      .firma-line{border-bottom:1.5px solid #999;height:40px;margin-bottom:6px}
+      .firma-lbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
+      .footer{margin-top:24px;font-size:11px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:12px}
+      @media print{body{padding:12px}button{display:none}}
     </style></head><body>
     <div class="header">
-      <div><div class="logo">TTA<span>Q</span> PLASTIC S.R.L.</div><div style="font-size:12px;color:#6b7280;margin-top:4px">Perfiles plásticos y burletes</div></div>
-      <div class="pedido-num"><div style="font-size:18px;font-weight:700;color:#1a5c2e">${pedido.id}</div><div>Fecha: ${pedido.fecha}</div><div>Vía: ${pedido.via}</div></div>
+      <div>
+        <div class="marca">TTAQ PLASTIC S.R.L.</div>
+        <div class="marca-sub">Perfiles plásticos y burletes</div>
+      </div>
+      <div class="orden-badge">
+        <div class="orden-id">${pedido.id}</div>
+        <div class="orden-tipo">Orden de fabricación</div>
+      </div>
     </div>
-    <div class="grid">
-      <div class="blk"><div class="blk-t">Cliente</div><div class="blk-v">${pedido.cliente}</div>${pedido.telefono?`<div style="font-size:13px;color:#6b7280;margin-top:4px">📞 ${pedido.telefono}</div>`:""}</div>
+
+    <div class="info-grid">
+      <div class="blk"><div class="blk-t">Cliente</div><div class="blk-v">${pedido.cliente}</div>${pedido.telefono?`<div style="font-size:12px;color:#6b7280;margin-top:3px">Tel: ${pedido.telefono}</div>`:""}</div>
+      <div class="blk"><div class="blk-t">Fecha pedido</div><div class="blk-v">${pedido.fecha}${pedido.fechaEntrega?`<div style="font-size:12px;color:#6b7280;margin-top:2px">Entrega: ${pedido.fechaEntrega}</div>`:""}</div></div>
       <div class="blk"><div class="blk-t">Transporte</div><div class="blk-v">${pedido.transporte||"—"}</div></div>
+      <div class="blk"><div class="blk-t">Vía</div><div class="blk-v">${pedido.via||"—"}</div></div>
     </div>
-    ${pedido.obs?`<div class="blk" style="margin-bottom:24px"><div class="blk-t">Observaciones</div><div class="blk-v">${pedido.obs}</div></div>`:""}
+
+    ${pedido.obs?`<div class="obs">⚠️ <b>Obs:</b> ${pedido.obs}</div>`:""}
+
     <table>
-      <tr><th>Producto</th><th>Medidas</th><th>Presentación</th><th>Cant.</th><th>Precio</th></tr>
-      ${pedido.items.map(item=>{
-        const medida=item.ancho?`${item.ancho}×${item.alto}mm`:item.largo?`${item.largo}mm`:"—";
-        const pres=item.presentacion?item.presentacion.charAt(0).toUpperCase()+item.presentacion.slice(1):"—";
-        const p=calcularPrecioItem(item,insumos,precios);
-        return `<tr><td>${item.tipoProducto}${item.aplicacion?" — "+item.aplicacion:""}</td><td>${medida}</td><td>${pres}</td><td>${item.cantidad}</td><td>${p?formatPesos(p.precioVenta):"—"}</td></tr>`;
+      <thead><tr>
+        <th style="width:40%">Producto</th>
+        <th style="width:18%">Medidas</th>
+        <th style="width:18%">Presentación</th>
+        <th style="width:12%">Cant.</th>
+        <th style="width:12%">Estado</th>
+      </tr></thead>
+      <tbody>
+      ${pedido.items.map((item,i)=>{
+        const medida = item.ancho ? `${item.ancho}×${item.alto}mm` : item.largo ? `${item.largo}mm` : "—";
+        const pres   = item.presentacion ? item.presentacion.charAt(0).toUpperCase()+item.presentacion.slice(1)+" (x20)" : "Unidad";
+        const mat    = calcularMateriales(item);
+        let qty = Number(item.cantidad||1);
+        if (item.presentacion) qty *= 20;
+        const matText = mat ? `Perfil: ${(mat.perfilMm*qty/1000).toFixed(2)}m${mat.imanMm>0?" · Imán: "+(mat.imanMm*qty/1000).toFixed(2)+"m":""}` : "";
+        return `<tr>
+          <td>
+            <div class="prod-tipo">${item.tipoProducto}${item.aplicacion?" — "+item.aplicacion:""}</div>
+            ${item.descripcion?`<div class="prod-desc">${item.descripcion}</div>`:""}
+            ${matText?`<div class="mat">📐 ${matText}</div>`:""}
+          </td>
+          <td><b>${medida}</b></td>
+          <td>${pres}</td>
+          <td style="font-size:20px;font-weight:900;color:#1a5c2e;text-align:center">${item.cantidad}</td>
+          <td><div style="border:1.5px solid #d1d5db;border-radius:4px;height:24px;width:24px;margin:0 auto"></div></td>
+        </tr>`;
       }).join("")}
+      </tbody>
     </table>
-    <div class="totales">
-      <div>Subtotal: <b>${formatPesos(totales.subtotal)}</b></div>
-      ${pedido.descuento?`<div>Descuento ${pedido.descuento}%: <b>-${formatPesos(totales.descuentoMonto)}</b></div>`:""}
-      <div class="total-final">TOTAL: ${formatPesos(totales.total)}</div>
+
+    <div class="firma-row">
+      <div class="firma-box"><div class="firma-line"></div><div class="firma-lbl">Fabricado por</div></div>
+      <div class="firma-box"><div class="firma-line"></div><div class="firma-lbl">Controlado por</div></div>
     </div>
-    <div class="footer">TTAQ Plastic S.R.L. · BurleteStock · ${today()} · Dólar: $${precios.dolar}</div>
+
+    <div class="footer">TTAQ Plastic S.R.L. · Orden generada: ${today()} · ${pedido.id}</div>
+    <script>window.onload=()=>{window.print();}</script>
+    </body></html>`);
+    win.document.close();
+  }
+
+  // ── REMITO CLIENTE — con logo, precios, total
+  function imprimirContenido(pedido) {
+    const totales = calcTotalPedido(pedido);
+    const win = window.open("","_blank");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Remito ${pedido.id}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;padding:28px 32px;max-width:720px;margin:0 auto;color:#111;font-size:14px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a5c2e;padding-bottom:16px;margin-bottom:22px}
+      .logo-wrap{display:flex;align-items:center;gap:14px}
+      .logo-icon{width:52px;height:52px;background:#1a5c2e;border-radius:10px;display:flex;align-items:center;justify-content:center}
+      .logo-text .marca{font-size:24px;font-weight:900;color:#1a5c2e;letter-spacing:-1px;line-height:1}
+      .logo-text .sub{font-size:12px;color:#6b7280;margin-top:3px}
+      .doc-info{text-align:right}
+      .doc-tipo{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px}
+      .doc-num{font-size:26px;font-weight:900;color:#1a5c2e;line-height:1;margin-top:2px}
+      .doc-fecha{font-size:12px;color:#6b7280;margin-top:3px}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+      .blk{background:#f9fafb;border-radius:7px;padding:12px 14px;border:1px solid #e5e7eb}
+      .blk-t{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px}
+      .blk-v{font-size:14px;font-weight:700;color:#111}
+      .blk-s{font-size:12px;color:#6b7280;margin-top:3px}
+      .obs{background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:20px;font-size:13px;color:#92400e}
+      table{width:100%;border-collapse:collapse;margin-bottom:4px}
+      thead tr{background:#1a5c2e}
+      th{color:white;padding:10px 12px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+      th:last-child{text-align:right}
+      td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
+      td:last-child{text-align:right;font-weight:700}
+      tr:nth-child(even) td{background:#fafafa}
+      .totales{background:#f9fafb;border-radius:8px;padding:14px 16px;text-align:right;border:1px solid #e5e7eb;margin-bottom:24px}
+      .tot-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#374151}
+      .tot-final{display:flex;justify-content:space-between;padding:10px 0 0;margin-top:8px;border-top:2px solid #1a5c2e;font-size:20px;font-weight:900;color:#1a5c2e}
+      .company-footer{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb}
+      .firma-box{text-align:center}
+      .firma-line{border-bottom:1.5px solid #d1d5db;height:44px;margin-bottom:6px}
+      .firma-lbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
+      .footer{margin-top:20px;font-size:11px;color:#9ca3af;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
+      @media print{body{padding:12px}button{display:none}}
+    </style></head><body>
+
+    <div class="header">
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+            <rect x="4" y="16" width="32" height="8" rx="4" fill="white" opacity="0.9"/>
+            <rect x="14" y="4" width="12" height="32" rx="4" fill="white" opacity="0.9"/>
+            <rect x="14" y="16" width="12" height="8" rx="2" fill="#1a5c2e"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <div class="marca">TTAQ PLASTIC S.R.L.</div>
+          <div class="sub">Perfiles plásticos y burletes</div>
+        </div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-tipo">Remito</div>
+        <div class="doc-num">${pedido.id}</div>
+        <div class="doc-fecha">Fecha: ${pedido.fecha}</div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="blk">
+        <div class="blk-t">Cliente</div>
+        <div class="blk-v">${pedido.cliente}</div>
+        ${pedido.telefono?`<div class="blk-s">📞 ${pedido.telefono}</div>`:""}
+      </div>
+      <div class="blk">
+        <div class="blk-t">Transporte</div>
+        <div class="blk-v">${pedido.transporte||"—"}</div>
+        <div class="blk-s">Vía: ${pedido.via||"—"}</div>
+      </div>
+    </div>
+
+    ${pedido.obs?`<div class="obs"><b>Observaciones:</b> ${pedido.obs}</div>`:""}
+
+    <table>
+      <thead><tr>
+        <th style="width:42%">Producto</th>
+        <th style="width:18%">Medidas</th>
+        <th style="width:18%">Presentación</th>
+        <th style="width:10%">Cant.</th>
+        <th style="width:12%">Precio</th>
+      </tr></thead>
+      <tbody>
+      ${pedido.items.map(item=>{
+        const medida = item.ancho ? `${item.ancho}×${item.alto}mm` : item.largo ? `${item.largo}mm` : "—";
+        const pres   = item.presentacion ? item.presentacion.charAt(0).toUpperCase()+item.presentacion.slice(1) : "—";
+        const p      = calcularPrecioItem(item,insumos,precios);
+        return `<tr>
+          <td><b>${item.tipoProducto}${item.aplicacion?" — "+item.aplicacion:""}</b></td>
+          <td>${medida}</td>
+          <td>${pres}</td>
+          <td style="text-align:center;font-weight:700">${item.cantidad}</td>
+          <td>${p ? formatPesos(p.precioVenta) : "—"}</td>
+        </tr>`;
+      }).join("")}
+      </tbody>
+    </table>
+
+    <div class="totales">
+      ${pedido.descuento>0?`<div class="tot-row"><span>Subtotal</span><span>${formatPesos(totales.subtotal)}</span></div>`:""}
+      ${pedido.descuento>0?`<div class="tot-row" style="color:#16a34a"><span>Descuento ${pedido.descuento}%</span><span>- ${formatPesos(totales.descuentoMonto)}</span></div>`:""}
+      <div class="tot-final"><span>TOTAL</span><span>${formatPesos(totales.total)}</span></div>
+    </div>
+
+    <div class="company-footer">
+      <div class="firma-box"><div class="firma-line"></div><div class="firma-lbl">Firma cliente</div></div>
+      <div class="firma-box"><div class="firma-line"></div><div class="firma-lbl">Firma TTAQ Plastic</div></div>
+    </div>
+
+    <div class="footer">TTAQ Plastic S.R.L. · BurleteStock · ${today()} · Dólar: $${precios.dolar?.toLocaleString("es-AR")}</div>
     <script>window.onload=()=>{window.print();}</script>
     </body></html>`);
     win.document.close();
@@ -707,7 +870,10 @@ function AppMain({ usuario, onLogout }) {
                             </div>
                             <div style={{textAlign:"right"}}>
                               <div style={{fontWeight:800,fontSize:16,color:D.greenSoft}}>{formatPesos(totales.total)}</div>
-                              <button onClick={()=>imprimirPedido(pedido)} style={{background:D.bgCard2,border:`1px solid ${D.border}`,borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:14,marginTop:4}}>🖨️</button>
+                              <div style={{display:"flex",gap:4,marginTop:4,justifyContent:"flex-end"}}>
+                                <button onClick={()=>imprimirOrdenFabricacion(pedido)} style={{background:"#1c2533",border:"1px solid #30363d",borderRadius:7,padding:"4px 7px",cursor:"pointer",fontSize:11,color:"#e6edf3",fontWeight:600}}>🔨 Op.</button>
+                                <button onClick={()=>imprimirPedido(pedido)} style={{background:D.blue,border:"none",borderRadius:7,padding:"4px 7px",cursor:"pointer",fontSize:11,color:"white",fontWeight:600}}>📄 Rem.</button>
+                              </div>
                             </div>
                           </div>
                           {pedido.items.map((item,i)=>{
@@ -784,8 +950,8 @@ function AppMain({ usuario, onLogout }) {
                 <div style={...G.secTitle,color:"#e6edf3"}>🧲 Insumos</div>
                 <button onClick={()=>setModal({tipo:"entradaInsumo"})} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Entrada</button>
               </div>
-              <div style={{...G.card,background:"linear-gradient(135deg,#f0fdf4,#dcfce7)",marginBottom:16}}>
-                <div style={{fontSize:12,color:"#22c55e",fontWeight:600}}>💰 Valor total del stock</div>
+              <div style={{...G.card,background:"#0d2818",border:"1px solid #166534",marginBottom:16}}>
+                <div style={{fontSize:12,color:"#4ade80",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>💰 Valor total del stock</div>
                 <div style={{fontSize:28,fontWeight:800,color:D.greenSoft}}>{formatPesos(valorStock)}</div>
                 <div style={{fontSize:11,color:D.textSoft,marginTop:2}}>Dólar a ${precios.dolar.toLocaleString("es-AR")}</div>
               </div>
@@ -997,9 +1163,10 @@ function AppMain({ usuario, onLogout }) {
                 </div>;
               })()}
             </div>
-            <div style={{padding:"14px 20px",borderTop:"1px solid #30363d",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <button onClick={()=>setModal(null)} style={{padding:"11px",border:"1px solid #30363d",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cerrar</button>
-              <button onClick={()=>imprimirContenido(modal.pedido)} style={{padding:"11px",background:D.blue,color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>🖨️ Imprimir</button>
+            <div style={{padding:"14px 20px",borderTop:`1px solid ${D.border}`,display:"grid",gridTemplateColumns:"auto 1fr 1fr",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setModal(null)} style={{padding:"11px 14px",border:`1px solid ${D.border}`,borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14,background:"transparent",color:D.textSoft}}>Cerrar</button>
+              <button onClick={()=>imprimirOrdenFabricacion(modal.pedido)} style={{padding:"11px",background:"#1c2533",border:"1px solid #30363d",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:13,color:"#e6edf3"}}>🔨 Orden operario</button>
+              <button onClick={()=>imprimirContenido(modal.pedido)} style={{padding:"11px",background:D.blue,color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:13}}>📄 Remito cliente</button>
             </div>
           </div>
         </div>
@@ -1207,9 +1374,9 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
   const total=subtotal*(1-(descuento||0)/100);
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}}>
-      <div style={{background:"white",borderRadius:"20px 20px 0 0",padding:20,width:"100%",maxWidth:600,maxHeight:"92vh",overflowY:"auto"}}>
-        <div style={{fontWeight:700,fontSize:16,marginBottom:14}}>📦 Nuevo pedido</div>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}}>
+      <div style={{background:D.bgCard,borderRadius:"16px 16px 0 0",padding:20,width:"100%",maxWidth:600,maxHeight:"92vh",overflowY:"auto",border:`1px solid ${D.border}`}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:14,color:D.text}}>📦 Nuevo pedido</div>
 
         <label style={G.lbl}>Cliente</label>
         <select style={G.inp} value={clienteId} onChange={e=>selCliente(e.target.value)}>
@@ -1231,7 +1398,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
 
         <div style={{fontWeight:700,fontSize:13,color:"#1a5c2e",margin:"10px 0 8px"}}>Productos</div>
         {items.map((item,idx)=>(
-          <div key={item.id} style={{background:"#f9fafb",borderRadius:10,padding:12,marginBottom:10,border:"1px solid #30363d"}}>
+          <div key={item.id} style={{background:D.bgCard2,borderRadius:10,padding:12,marginBottom:10,border:`1px solid ${D.border}`}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
               <div style={{fontWeight:600,fontSize:13}}>Producto {idx+1}</div>
               {items.length>1&&<button onClick={()=>setItems(p=>p.filter((_,i)=>i!==idx))} style={{background:"#2d1515",border:"none",borderRadius:6,padding:"4px 8px",color:"#f87171",cursor:"pointer",fontSize:12}}>✕</button>}
@@ -1289,14 +1456,14 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
         <input style={G.inp} value={obs} onChange={e=>setObs(e.target.value)} placeholder="Urgencia, fecha de entrega..."/>
 
         {/* Total */}
-        <div style={{background:"#f0fdf4",borderRadius:10,padding:"12px 14px",marginBottom:14,textAlign:"right"}}>
+        <div style={{background:"#0d2818",border:"1px solid #166534",borderRadius:10,padding:"12px 14px",marginBottom:14,textAlign:"right"}}>
           {descuento>0&&<div style={{fontSize:13,color:D.textSoft}}>Subtotal: {formatPesos(subtotal)}</div>}
           {descuento>0&&<div style={{fontSize:13,color:"#22c55e"}}>Descuento {descuento}%: -{formatPesos(subtotal*descuento/100)}</div>}
           <div style={{fontSize:18,fontWeight:800,color:D.greenSoft}}>TOTAL: {formatPesos(total)}</div>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <button onClick={onClose} style={{padding:"12px",border:"1px solid #30363d",borderRadius:10,background:"#161b22",fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+          <button onClick={onClose} style={{padding:"12px",border:`1px solid ${D.border}`,borderRadius:10,background:"transparent",color:D.textSoft,fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
           <button onClick={()=>{
             if (!(cliente||clienteId)||!items.length) return;
             onConfirm({clienteId,cliente:cliente||clientes.find(c=>c.id===clienteId)?.nombre,telefono,transporte,descuento,via,obs,items:items.map(it=>({...it,descripcion:buildDesc(it)}))});
@@ -1312,9 +1479,9 @@ function EntradaInsumoModal({ insumos, onConfirm, onClose }) {
   const [selectedId, setSelectedId] = useState(insumos[0]?.id||"");
   const [cantidad, setCantidad]     = useState("");
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}}>
-      <div style={{background:"white",borderRadius:"20px 20px 0 0",padding:20,width:"100%",maxWidth:600}}>
-        <div style={{fontWeight:700,fontSize:16,marginBottom:14}}>📥 Entrada de insumo</div>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}}>
+      <div style={{background:D.bgCard,borderRadius:"16px 16px 0 0",padding:20,width:"100%",maxWidth:600,border:`1px solid ${D.border}`}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:14,color:D.text}}>📥 Entrada de insumo</div>
         <label style={G.lbl}>Insumo</label>
         <select style={G.inp} value={selectedId} onChange={e=>setSelectedId(e.target.value)}>
           {insumos.map(i=><option key={i.id} value={i.id}>{i.descripcion} (stock: {typeof i.stock==="number"?i.stock.toFixed(1):i.stock} {i.unidad})</option>)}
@@ -1322,7 +1489,7 @@ function EntradaInsumoModal({ insumos, onConfirm, onClose }) {
         <label style={G.lbl}>Cantidad (metros)</label>
         <input type="number" min={0.1} step={0.1} style={G.inp} value={cantidad} onChange={e=>setCantidad(e.target.value)} placeholder="ej: 50"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
-          <button onClick={onClose} style={{padding:"12px",border:"1px solid #30363d",borderRadius:10,background:"#161b22",fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+          <button onClick={onClose} style={{padding:"12px",border:`1px solid ${D.border}`,borderRadius:10,background:"transparent",color:D.textSoft,fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
           <button onClick={()=>cantidad>0&&onConfirm(selectedId,cantidad)} style={{padding:"12px",background:D.blue,color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Confirmar</button>
         </div>
       </div>
