@@ -15,7 +15,11 @@ async function sb(table, method="GET", body=null, query="") {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) { const err = await res.text(); console.error(table, method, err); return null; }
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("❌ Supabase error:", table, method, err);
+    throw new Error(`Error al guardar en ${table}: ${err}`);
+  }
   if (method==="DELETE") return true;
   const text = await res.text();
   return text ? JSON.parse(text) : null;
@@ -306,6 +310,7 @@ function AppMain({ usuario, onLogout }) {
   const [modal, setModal]       = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [dbError, setDbError]   = useState(false);
   const [chat, setChat]         = useState([{ role:"assistant", text:`¡Hola ${usuario.nombre}! Soy tu asistente. Preguntame sobre stock, pedidos o insumos.` }]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -334,12 +339,19 @@ function AppMain({ usuario, onLogout }) {
 
         // Si no hay datos en Supabase, cargar los iniciales
         if (!ins?.length) {
-          await Promise.all(INITIAL_INSUMOS.map(i=>sb("insumos","POST",insumoToDb(i))));
+          try { await Promise.all(INITIAL_INSUMOS.map(i=>sb("insumos","POST",insumoToDb(i)))); }
+          catch(e) { console.error("Error cargando insumos iniciales:",e); }
         }
         if (!cli?.length) {
-          await Promise.all(INITIAL_CLIENTES.map(c=>sb("clientes","POST",clienteToDb(c))));
+          try { await Promise.all(INITIAL_CLIENTES.map(c=>sb("clientes","POST",clienteToDb(c)))); }
+          catch(e) { console.error("Error cargando clientes iniciales:",e); }
         }
-      } catch(e) { console.error("Error cargando datos:",e); }
+        // Si no hay fila de precios, crearla
+        if (!pre?.length) {
+          try { await sb("precios","POST",{id:1,dolar:INITIAL_PRECIOS.dolar,ganancia:INITIAL_PRECIOS.ganancia,ultima_actualizacion:today()}); }
+          catch(e) { console.error("Error creando precios iniciales:",e); }
+        }
+      } catch(e) { console.error("Error cargando datos:",e); setDbError(true); }
       setCargando(false);
 
     }
@@ -363,13 +375,15 @@ function AppMain({ usuario, onLogout }) {
     if (!ins) return;
     const updated = {...ins,...changes};
     setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
-    await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+    try { await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`); }
+    catch(e) { toast("❌ Error al guardar insumo","error"); console.error(e); }
   }
 
   async function agregarMovimientoDb(mov) {
     const movConUsuario = {...mov, usuario: usuario.nombre};
     setMovimientos(prev=>[movConUsuario,...prev]);
-    await sb("movimientos","POST",movToDb(movConUsuario));
+    try { await sb("movimientos","POST",movToDb(movConUsuario)); }
+    catch(e) { console.error("Error movimiento:",e); }
   }
 
   function descontarInsumos(items) {
@@ -399,9 +413,11 @@ function AppMain({ usuario, onLogout }) {
     const p=pedidos.find(p=>p.id===pedidoId);
     if (nuevoEstado==="en fabricacion"&&p) descontarInsumos(p.items);
     setPedidos(prev=>prev.map(p=>p.id===pedidoId?{...p,estado:nuevoEstado}:p));
-    await sb("pedidos","PATCH",{estado:nuevoEstado},`?id=eq.${pedidoId}`);
-    const labels={"en fabricacion":"En fabricación","listo":"Listo para entregar"};
-    toast(labels[nuevoEstado]||"Estado actualizado");
+    try {
+      await sb("pedidos","PATCH",{estado:nuevoEstado},`?id=eq.${pedidoId}`);
+      const labels={"en fabricacion":"En fabricación","listo":"Listo para entregar"};
+      toast(labels[nuevoEstado]||"Estado actualizado");
+    } catch(e) { toast("❌ Error al guardar estado","error"); }
   }
   async function entregarPedido(pedidoId) {
     const fechaEntrega=today();
@@ -429,8 +445,10 @@ function AppMain({ usuario, onLogout }) {
     const id=`PED-${String(Date.now()).slice(-4)}`;
     const nuevo={...pedido,id,fecha:today(),estado:"pendiente"};
     setPedidos(prev=>[nuevo,...prev]);
-    await sb("pedidos","POST",pedidoToDb(nuevo));
-    toast("Pedido guardado");
+    try {
+      await sb("pedidos","POST",pedidoToDb(nuevo));
+      toast("Pedido guardado ✓");
+    } catch(e) { toast("❌ Error al guardar pedido","error"); console.error(e); }
     setModal(null);
   }
 
@@ -606,6 +624,14 @@ function AppMain({ usuario, onLogout }) {
         </div>
       )}
 
+      {/* BANNER ERROR DB */}
+      {dbError&&(
+        <div style={{background:"#7f1d1d",color:"#fca5a5",padding:"8px 16px",fontSize:13,textAlign:"center",fontWeight:600}}>
+          ⚠️ Error de conexión con la base de datos. Los datos mostrados son locales y no se están guardando. Revisá tu conexión a internet.
+          <button onClick={()=>window.location.reload()} style={{background:"#ef4444",color:"white",border:"none",borderRadius:6,padding:"4px 12px",marginLeft:10,cursor:"pointer",fontSize:12,fontWeight:700}}>Reintentar</button>
+        </div>
+      )}
+
       {/* CONTENIDO */}
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{padding:"20px 16px",maxWidth:900,margin:"0 auto"}}>
@@ -720,11 +746,10 @@ function AppMain({ usuario, onLogout }) {
           {/* CLIENTES */}
           {tab==="clientes"&&<ClientesTab clientes={clientes}
             onGuardarCliente={async(cli, esNuevo)=>{
-              if (esNuevo) { setClientes(prev=>[...prev,cli]); await sb("clientes","POST",clienteToDb(cli)); }
-              else { setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c)); await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); }
-              toast(esNuevo?"Cliente guardado":"Cliente actualizado");
+              if (esNuevo) { setClientes(prev=>[...prev,cli]); try { await sb("clientes","POST",clienteToDb(cli)); toast("Cliente guardado ✓"); } catch(e) { toast("❌ Error al guardar cliente","error"); } }
+              else { setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c)); try { await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); toast("Cliente actualizado ✓"); } catch(e) { toast("❌ Error al actualizar cliente","error"); } }
             }}
-            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); await sb("clientes","DELETE",null,`?id=eq.${id}`); toast("Cliente eliminado","warn"); }}
+            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); try { await sb("clientes","DELETE",null,`?id=eq.${id}`); toast("Cliente eliminado","warn"); } catch(e) { toast("❌ Error al eliminar","error"); } }}
             onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}
           />}
 
@@ -817,7 +842,12 @@ function AppMain({ usuario, onLogout }) {
             <PreciosTab precios={precios}
               onGuardarPrecios={async p=>{
                 setPrecios(p);
-                await sb("precios","PATCH",{dolar:p.dolar,ganancia:p.ganancia,ultima_actualizacion:p.ultimaActualizacion},"?id=eq.1");
+                try {
+                  await sb("precios","POST",{id:1,dolar:p.dolar,ganancia:p.ganancia,ultima_actualizacion:p.ultimaActualizacion},"?on_conflict=id");
+                } catch(e) {
+                  // fallback a PATCH si el POST falla
+                  try { await sb("precios","PATCH",{dolar:p.dolar,ganancia:p.ganancia,ultima_actualizacion:p.ultimaActualizacion},"?id=eq.1"); } catch(e2){}
+                }
                 toast("Precios actualizados");
               }}
               insumos={insumos}
@@ -890,18 +920,18 @@ function AppMain({ usuario, onLogout }) {
               const ins=insumos.find(i=>i.id===id);
               const updated={...ins,...ch};
               setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
-              await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
-              toast("Insumo actualizado");
+              try { await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`); toast("Insumo actualizado ✓"); }
+              catch(e) { toast("❌ Error al guardar insumo","error"); }
             }}
             onAddInsumo={async item=>{
               setInsumos(prev=>[...prev,item]);
-              await sb("insumos","POST",insumoToDb(item));
-              toast("Insumo agregado");
+              try { await sb("insumos","POST",insumoToDb(item)); toast("Insumo agregado ✓"); }
+              catch(e) { toast("❌ Error al agregar insumo","error"); }
             }}
             onDeleteInsumo={async id=>{
               setInsumos(prev=>prev.filter(i=>i.id!==id));
-              await sb("insumos","DELETE",null,`?id=eq.${id}`);
-              toast("Insumo eliminado","warn");
+              try { await sb("insumos","DELETE",null,`?id=eq.${id}`); toast("Insumo eliminado","warn"); }
+              catch(e) { toast("❌ Error al eliminar","error"); }
             }}
           />}
 
@@ -1006,7 +1036,7 @@ function AppMain({ usuario, onLogout }) {
         setModal(null);
       }} onClose={()=>setModal(null)}/>}
 
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}*{box-sizing:border-box}input:focus,select:focus{border-color:#2563eb!important}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}*{box-sizing:border-box;font-family:'Inter',system-ui,sans-serif}body{background:#0d1117;color:#e6edf3}input,select,textarea{color:#e6edf3!important;background:#1c2128!important}input:focus,select:focus{border-color:#2563eb!important}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}div,span,p,td,th,label,button{color:inherit}a{color:#60a5fa}`}</style>
     </div>
   );
 }
