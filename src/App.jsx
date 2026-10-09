@@ -215,7 +215,7 @@ const G = {
 };
 
 const TIPOS       = ["Marco","Burlete","Angulo","Tira","Manguera"];
-const APLICACIONES= ["BOSCH","SOFT","DOBLE BALON","SOFT CON ALETA Y PRESION"];
+const APLICACIONES= ["BOSCH","SOFT","DOBLE BALON","SOFT CON ALETA","PRESION"];
 const TRANSPORTES = ["Andreani","OCA","Correo Argentino","Retira en local","Otro"];
 export default function App() {
   const [usuario, setUsuario] = useState(null);
