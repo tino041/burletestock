@@ -1126,7 +1126,6 @@ function AppMain({ usuario, onLogout }) {
         </div>
         </div>
       </div>
-      </div>
 
       {/* PREVIEW PEDIDO */}
       {modal?.tipo==="previewPedido"&&(
