@@ -1649,15 +1649,15 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
   });
 
   // Tipos más vendidos
-  const porTipo = {};
+  const porTipoVentas = {};
   entregados.filter(p => {
     const my = getMonthYear(p.fechaEntrega);
     return my && my.anio === anio;
   }).forEach(p => {
     p.items.forEach(item => {
       const a = item.aplicacion || "Manguera";
-      if (!porTipo[a]) porTipo[a] = 0;
-      porTipo[a]++;
+      if (!porTipoVentas[a]) porTipoVentas[a] = 0;
+      porTipoVentas[a]++;
     });
   });
 
@@ -1750,7 +1750,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
       </div>
 
       {/* Productos más vendidos */}
-      {Object.keys(porTipo).length > 0 && (
+      {Object.keys(porTipoVentas).length > 0 && (
         <div style={G.card}>
           <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:D.text}}>🔧 Por tipo de producto</div>
           {Object.entries(porTipo).sort((a,b)=>b[1].total-a[1].total).map(([tipo,data],i)=>(
@@ -1771,17 +1771,17 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
       )}
 
       {/* Por aplicación */}
-      {Object.keys(porTipo).length > 0 && (
+      {Object.keys(porTipoVentas).length > 0 && (
         <div style={G.card}>
           <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:D.text}}>Por tipo</div>
-          {Object.entries(porTipo).sort((a,b)=>b[1]-a[1]).map(([apl,cant],i)=>(
+          {Object.entries(porTipoVentas).sort((a,b)=>b[1]-a[1]).map(([apl,cant],i)=>(
             <div key={apl} style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
                 <span style={{fontWeight:600}}>{apl}</span>
                 <span style={{color:D.textSoft}}>{cant} productos</span>
               </div>
               <div style={{background:D.bgCard2,borderRadius:4,height:6}}>
-                <div style={{width:`${(cant/Math.max(...Object.values(porTipo)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
+                <div style={{width:`${(cant/Math.max(...Object.values(porTipoVentas)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
               </div>
             </div>
           ))}
