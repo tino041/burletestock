@@ -1337,6 +1337,8 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
         </div>
         <label style={G.lbl}>Descuento (%)</label>
         <input type="number" min={0} max={100} style={G.inp} value={form.descuento||0} onChange={e=>setForm(f=>({...f,descuento:Number(e.target.value)}))} placeholder="0"/>
+        <label style={G.lbl}>Observaciones</label>
+        <textarea style={{...G.inp,resize:"vertical",minHeight:72}} value={form.obs||""} onChange={e=>setForm(f=>({...f,obs:e.target.value}))} placeholder="Notas sobre el cliente, condiciones de pago, preferencias..."/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
           <button onClick={()=>setEditando(null)} style={{padding:"11px",border:"1px solid #30363d",borderRadius:10,background:"#161b22",fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
           <button onClick={guardar} style={{padding:"11px",background:D.blue,color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Guardar</button>
@@ -1349,7 +1351,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div style={{...G.secTitle,color:"#e6edf3"}}>👥 Clientes</div>
-        <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0,embalaje:""});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
+        <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0,embalaje:"",obs:""});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
       <input value={buscar} onChange={e=>setBuscar(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...G.inp,marginBottom:14}}/>
       {filtrados.map(c=>(
@@ -1362,6 +1364,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
               {c.transporte&&<div style={{fontSize:12,color:D.textSoft}}>🚚 {c.transporte}</div>}
               {c.embalaje&&<div style={{fontSize:12,color:D.textSoft}}>📦 Embalaje: {c.embalaje}</div>}
               {c.descuento>0&&<div style={{fontSize:12,color:"#22c55e",fontWeight:600}}>🏷️ {c.descuento}% descuento</div>}
+              {c.obs&&<div style={{fontSize:12,color:D.textSoft,marginTop:4,fontStyle:"italic"}}>📝 {c.obs}</div>}
             </div>
             <div style={{display:"flex",gap:6,marginLeft:10,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={()=>onNuevoPedido(c)} style={{background:"#0d2818",border:"1px solid #166534",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#22c55e",fontWeight:600,cursor:"pointer"}}>+ Pedido</button>
