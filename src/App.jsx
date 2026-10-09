@@ -840,7 +840,7 @@ function AppMain({ usuario, onLogout }) {
           {tab==="pedidos"&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={...G.secTitle,color:"#e6edf3"}>📦 Pedidos</div>
+                <div style={{...G.secTitle,color:"#e6edf3"}}>📦 Pedidos</div>
                 <button onClick={()=>setModal({tipo:"nuevoPedido"})} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
               </div>
               {["pendiente","en fabricacion","listo","entregado"].map(estado=>{
@@ -946,7 +946,7 @@ function AppMain({ usuario, onLogout }) {
           {tab==="insumos"&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={...G.secTitle,color:"#e6edf3"}>🧲 Insumos</div>
+                <div style={{...G.secTitle,color:"#e6edf3"}}>🧲 Insumos</div>
                 <button onClick={()=>setModal({tipo:"entradaInsumo"})} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Entrada</button>
               </div>
               <div style={{...G.card,background:"#0d2818",border:"1px solid #166534",marginBottom:16}}>
@@ -1031,7 +1031,7 @@ function AppMain({ usuario, onLogout }) {
           {/* HISTORIAL */}
           {tab==="movimientos"&&(
             <div>
-              <div style={...G.secTitle,color:"#e6edf3"}>📋 Historial</div>
+              <div style={{...G.secTitle,color:"#e6edf3"}}>📋 Historial</div>
               {movimientos.map((m,i)=>(
                 <div key={i} style={{...G.card,borderLeft:`4px solid ${m.movimiento==="ENTRADA"?"#22c55e":"#f87171"}`}}>
                   <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -1054,7 +1054,7 @@ function AppMain({ usuario, onLogout }) {
           {/* IA */}
           {tab==="ia"&&(
             <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
-              <div style={...G.secTitle,color:"#e6edf3"}>🤖 Asistente IA</div>
+              <div style={{...G.secTitle,color:"#e6edf3"}}>🤖 Asistente IA</div>
               <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:10}}>
                 {chat.map((m,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
@@ -1220,7 +1220,7 @@ function PreciosTab({ precios, onGuardarPrecios, insumos, onUpdatePrecioInsumo }
 
   return (
     <div>
-      <div style={...G.secTitle,color:"#e6edf3"}>💰 Precios y cotización</div>
+      <div style={{...G.secTitle,color:"#e6edf3"}}>💰 Precios y cotización</div>
 
       {/* Cotización del día */}
       <div style={G.card}>
@@ -1311,7 +1311,7 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={...G.secTitle,color:"#e6edf3"}>👥 Clientes</div>
+        <div style={{...G.secTitle,color:"#e6edf3"}}>👥 Clientes</div>
         <button onClick={()=>{setEditando({nuevo:true});setForm({id:"",nombre:"",telefono:"",direccion:"",transporte:"",descuento:0,embalaje:""});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
       <input value={buscar} onChange={e=>setBuscar(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...G.inp,marginBottom:14}}/>
@@ -1541,7 +1541,7 @@ function ConfigInsumos({ insumos, onUpdateInsumo, onAddInsumo, onDeleteInsumo })
 
   return (
     <div>
-      <div style={...G.secTitle,color:"#e6edf3"}>⚙️ Configuración de insumos</div>
+      <div style={{...G.secTitle,color:"#e6edf3"}}>⚙️ Configuración de insumos</div>
       <button onClick={()=>{setEditando({nuevo:true});setForm({id:`INS-${String(Date.now()).slice(-3)}`,descripcion:"",unidad:"metro",stock:0,minimo:10,maximo:100,proveedor:"",esIman:false,esPerfil:false,esManguera:false});}} style={{...G.btn(),marginBottom:14}}>+ Agregar insumo</button>
       {insumos.map(item=>(
         <div key={item.id} style={{...G.card,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1679,7 +1679,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div style={...G.secTitle,color:"#e6edf3"}>📈 Estadísticas</div>
+        <div style={{...G.secTitle,color:"#e6edf3"}}>📈 Estadísticas</div>
         <select style={{border:`1px solid ${D.border}`,borderRadius:8,padding:"6px 10px",fontSize:14,background:D.bgCard2,color:D.text,outline:"none"}} value={anio} onChange={e=>setAnio(Number(e.target.value))}>
           {(aniosDisponibles.length>0?aniosDisponibles:[new Date().getFullYear()]).map(a=><option key={a} value={a}>{a}</option>)}
         </select>
@@ -1884,7 +1884,7 @@ function UsuariosTab({ usuarioActual }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={...G.secTitle,color:"#e6edf3"}>👤 Usuarios</div>
+        <div style={{...G.secTitle,color:"#e6edf3"}}>👤 Usuarios</div>
         <button onClick={()=>{setEditando(true);setForm({rol:"equipo"});}} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Nuevo</button>
       </div>
 
@@ -2018,7 +2018,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={...G.secTitle,color:"#e6edf3"}>📦 Stock de productos</div>
+        <div style={{...G.secTitle,color:"#e6edf3"}}>📦 Stock de productos</div>
         <button onClick={abrirNuevo} style={{background:D.blue,color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>+ Agregar</button>
       </div>
 
