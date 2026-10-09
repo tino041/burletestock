@@ -238,8 +238,8 @@ export default function App() {
   }
 
   if (authCargando) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#f0f4f1"}}>
-      <div style={{fontSize:40}}>🏭</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:D.bg}}>
+      <div style={{width:10,height:10,borderRadius:"50%",background:D.blue}}></div>
     </div>
   );
 
@@ -271,7 +271,7 @@ function LoginScreen({ onLogin }) {
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:`linear-gradient(135deg,${D.bg} 0%,#0d1f35 100%)`,padding:20}}>
       <div style={{background:D.bgCard,borderRadius:20,padding:32,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.6)",border:`1px solid ${D.border}`}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:48,marginBottom:8}}>🏭</div>
+          <div style={{fontWeight:800,fontSize:28,color:D.blue,letterSpacing:"-1px",marginBottom:4}}>TTAQ</div>
           <div style={{fontWeight:800,fontSize:24,color:D.text}}>BurleteStock</div>
           <div style={{fontSize:13,color:D.textSoft,marginTop:4}}>TTAQ Plastic S.R.L.</div>
         </div>
@@ -702,20 +702,20 @@ function AppMain({ usuario, onLogout }) {
   }
 
   const tabs=[
-    ...(esAdmin ? [{id:"dashboard", label:"Panel", icon:"📊"}] : []),
-    {id:"pedidos",      label:"Pedidos",      icon:"📦", badge:pedidosPendientes.length},
-    ...(esAdmin ? [{id:"clientes", label:"Clientes", icon:"👥"}] : []),
-    {id:"stock",        label:"Stock",        icon:"📦"},
-    {id:"insumos",      label:"Insumos",      icon:"🧲"},
+    ...(esAdmin ? [{id:"dashboard", label:"Panel"}] : []),
+    {id:"pedidos",      label:"Pedidos",      badge:pedidosPendientes.length},
+    ...(esAdmin ? [{id:"clientes", label:"Clientes"}] : []),
+    {id:"stock",        label:"Stock"},
+    {id:"insumos",      label:"Insumos"},
     ...(esAdmin ? [
-      {id:"precios",      label:"Precios",      icon:"💰"},
-      {id:"estadisticas", label:"Estadísticas", icon:"📈"},
+      {id:"precios",      label:"Precios"},
+      {id:"estadisticas", label:"Estadísticas"},
     ] : []),
-    {id:"movimientos",  label:"Historial",    icon:"📋"},
+    {id:"movimientos",  label:"Historial"},
     ...(esAdmin ? [
-      {id:"ia",      label:"IA",       icon:"🤖"},
-      {id:"usuarios",label:"Usuarios", icon:"👤"},
-      {id:"config",  label:"Config",   icon:"⚙️"},
+      {id:"ia",      label:"IA"},
+      {id:"usuarios",label:"Usuarios"},
+      {id:"config",  label:"Config"},
     ] : []),
   ];
   const currentTab=tabs.find(t=>t.id===tab);
@@ -730,7 +730,7 @@ function AppMain({ usuario, onLogout }) {
             {menuOpen?"✕":"☰"}
           </button>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:26,height:26,background:D.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🏭</div>
+            <div style={{width:26,height:26,background:D.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"white",letterSpacing:"-0.5px"}}>TQ</div>
             <div>
               <span style={{fontWeight:800,fontSize:14,color:D.text,letterSpacing:"-0.3px"}}>BurleteStock</span>
               <span style={{fontSize:11,color:D.textDim,marginLeft:6}}>/ {currentTab?.label}</span>
@@ -750,7 +750,7 @@ function AppMain({ usuario, onLogout }) {
           <div style={{position:"absolute",top:0,left:0,bottom:0,width:240,background:D.bgCard,boxShadow:`4px 0 32px rgba(0,0,0,0.6)`,display:"flex",flexDirection:"column",border:`1px solid ${D.border}`}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:"20px 16px 14px",borderBottom:`1px solid ${D.border}`}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:32,height:32,background:D.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🏭</div>
+                <div style={{width:32,height:32,background:D.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"white",letterSpacing:"-0.5px"}}>TQ</div>
                 <div>
                   <div style={{fontWeight:800,fontSize:14,color:D.text,letterSpacing:"-0.3px"}}>BurleteStock</div>
                   <div style={{fontSize:10,color:D.textDim,letterSpacing:"0.5px",textTransform:"uppercase"}}>TTAQ Plastic</div>
@@ -764,7 +764,6 @@ function AppMain({ usuario, onLogout }) {
                 return (
                   <button key={t.id} onClick={()=>{setTab(t.id);setMenuOpen(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 12px",border:"none",borderRadius:7,cursor:"pointer",marginBottom:2,textAlign:"left",background:active?`${D.blue}18`:"transparent",color:active?D.text:D.textSoft,fontWeight:active?600:400,fontSize:13,position:"relative"}}>
                     {active&&<div style={{position:"absolute",left:0,top:"18%",bottom:"18%",width:2.5,background:D.blue,borderRadius:"0 2px 2px 0"}}/>}
-                    <span style={{fontSize:15}}>{t.icon}</span>
                     <span style={{flex:1}}>{t.label}</span>
                     {t.badge>0&&<span style={{background:"#7f1d1d",color:"#fca5a5",borderRadius:5,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t.badge}</span>}
                   </button>
@@ -990,7 +989,7 @@ function AppMain({ usuario, onLogout }) {
                             <span>Stock: <b style={{color:D.text}}>{typeof item.stock==="number"?item.stock.toFixed(1):item.stock} {item.unidad}</b></span>
                             <span>Máx: {item.maximo}</span>
                           </div>
-                          <div style={{background:"#f3f4f6",borderRadius:4,height:6}}>
+                          <div style={{background:D.bgCard2,borderRadius:4,height:6}}>
                             <div style={{width:`${pct}%`,background:est==="reponer"?"#ef4444":est==="lleno"?"#f59e0b":"#22c55e",height:6,borderRadius:4}}/>
                           </div>
                           <div style={{fontSize:11,color:D.textSoft,marginTop:3}}>Mínimo: {item.minimo} {item.unidad}</div>
@@ -1059,14 +1058,14 @@ function AppMain({ usuario, onLogout }) {
               <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:10}}>
                 {chat.map((m,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                    <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",background:m.role==="user"?"#1a5c2e":"white",color:m.role==="user"?"white":"#111",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>{m.text}</div>
+                    <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",background:m.role==="user"?D.blue:D.bgCard2,color:D.text,fontSize:14,lineHeight:1.5,border:`1px solid ${D.border}`}}>{m.text}</div>
                   </div>
                 ))}
-                {chatLoading&&<div style={{display:"flex",gap:4,padding:"10px 14px",background:"white",borderRadius:"16px 16px 16px 4px",width:60}}>{[0,1,2].map(j=><div key={j} style={{width:6,height:6,borderRadius:"50%",background:D.textSoft,animation:`bounce 1s ${j*0.2}s infinite`}}/>)}</div>}
+                {chatLoading&&<div style={{display:"flex",gap:4,padding:"10px 14px",background:D.bgCard2,borderRadius:"16px 16px 16px 4px",width:60,border:`1px solid ${D.border}`}}>{[0,1,2].map(j=><div key={j} style={{width:6,height:6,borderRadius:"50%",background:D.textSoft,animation:`bounce 1s ${j*0.2}s infinite`}}/>)}</div>}
                 <div ref={chatEndRef}/>
               </div>
               <div style={{display:"flex",gap:8,paddingTop:10}}>
-                <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Preguntame sobre el stock..." style={{flex:1,border:"1px solid #30363d",borderRadius:10,padding:"10px 14px",fontSize:14,outline:"none"}}/>
+                <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Preguntame sobre el stock..." style={{flex:1,border:`1px solid ${D.border}`,borderRadius:10,padding:"10px 14px",fontSize:14,outline:"none",background:D.bgCard2,color:D.text}}/>
                 <button onClick={sendChat} disabled={chatLoading} style={{background:D.blue,color:"white",border:"none",borderRadius:10,padding:"10px 16px",cursor:"pointer",fontWeight:700,fontSize:16}}>➤</button>
               </div>
               <div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1118,7 +1117,7 @@ function AppMain({ usuario, onLogout }) {
               {/* Preview content */}
               <div style={{borderBottom:"2px solid #1a5c2e",paddingBottom:16,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontWeight:900,fontSize:22,color:"#1a5c2e",letterSpacing:-1}}>TTAQ<span style={{color:"#4a4a4a"}}>Q</span> PLASTIC S.R.L.</div>
+                  <div style={{fontWeight:900,fontSize:22,color:D.blue,letterSpacing:-1}}>TTAQ PLASTIC S.R.L.</div>
                   <div style={{fontSize:12,color:D.textSoft}}>Perfiles plásticos y burletes</div>
                 </div>
                 <div style={{textAlign:"right"}}>
@@ -1182,7 +1181,7 @@ function AppMain({ usuario, onLogout }) {
       </div>
       {cargando&&(
         <div style={{position:"fixed",inset:0,background:D.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500}}>
-          <div style={{fontSize:48,marginBottom:16}}>🏭</div>
+          <div style={{fontWeight:800,fontSize:32,color:D.blue,letterSpacing:"-1px",marginBottom:8}}>TTAQ</div>
           <div style={{fontWeight:700,fontSize:18,color:D.text,marginBottom:8}}>BurleteStock</div>
           <div style={{fontSize:14,color:D.textSoft}}>Cargando datos...</div>
           <div style={{marginTop:20,display:"flex",gap:6}}>{[0,1,2].map(j=><div key={j} style={{width:8,height:8,borderRadius:"50%",background:D.blue,animation:`bounce 1s ${j*0.2}s infinite`}}/>)}</div>
@@ -1282,9 +1281,9 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
 
   if (editando) return (
     <div>
-      <button onClick={()=>setEditando(null)} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <button onClick={()=>setEditando(null)} style={{background:"none",border:"none",color:D.blue,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
       <div style={G.card}>
-        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{editando.nuevo?"➕ Nuevo cliente":"✏️ Editar cliente"}</div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16,color:D.text}}>{editando.nuevo?"Nuevo cliente":"Editar cliente"}</div>
         {[["nombre","Nombre *"],["telefono","Teléfono"],["direccion","Dirección"]].map(([key,label])=>(
           <div key={key}><label style={G.lbl}>{label}</label><input style={G.inp} value={form[key]||""} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></div>
         ))}
@@ -1294,8 +1293,8 @@ function ClientesTab({ clientes, onGuardarCliente, onEliminarCliente, onNuevoPed
         <label style={G.lbl}>Tipo de embalaje</label>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
           {["Caja","Paquete","Jaula","Sin embalaje"].map(e=>(
-            <button key={e} onClick={()=>setForm(f=>({...f,embalaje:f.embalaje===e?"":e}))} style={{padding:"8px 4px",border:`2px solid ${form.embalaje===e?"#1a5c2e":"#e5e7eb"}`,borderRadius:8,background:form.embalaje===e?"#f0fdf4":"white",color:form.embalaje===e?"#1a5c2e":"#374151",fontWeight:form.embalaje===e?700:400,cursor:"pointer",fontSize:12}}>
-              {e==="Caja"?"📦 Caja":e==="Paquete"?"📫 Paquete":e==="Jaula"?"🧺 Jaula":"— Sin embalaje"}
+            <button key={e} onClick={()=>setForm(f=>({...f,embalaje:f.embalaje===e?"":e}))} style={{padding:"8px 4px",border:`2px solid ${form.embalaje===e?D.blue:D.border}`,borderRadius:8,background:form.embalaje===e?`${D.blue}18`:D.bgCard2,color:form.embalaje===e?D.text:D.textSoft,fontWeight:form.embalaje===e?700:400,cursor:"pointer",fontSize:12}}>
+              {e==="Caja"?"Caja":e==="Paquete"?"Paquete":e==="Jaula"?"Jaula":"Sin embalaje"}
             </button>
           ))}
         </div>
@@ -1396,7 +1395,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
           </div>
         </div>
 
-        <div style={{fontWeight:700,fontSize:13,color:"#1a5c2e",margin:"10px 0 8px"}}>Productos</div>
+        <div style={{fontWeight:700,fontSize:13,color:D.textSoft,margin:"10px 0 8px",textTransform:"uppercase",letterSpacing:"0.05em",fontSize:11}}>Productos</div>
         {items.map((item,idx)=>(
           <div key={item.id} style={{background:D.bgCard2,borderRadius:10,padding:12,marginBottom:10,border:`1px solid ${D.border}`}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
@@ -1423,8 +1422,8 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
                 <label style={G.lbl}>Presentación</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
                   {[["unidad","📦 Unidad",null],["caja","📦 Caja (x20)","caja"],["bolsa","🛍️ Bolsa (x20)","bolsa"]].map(([key,label,val])=>(
-                    <button key={key} onClick={()=>upd(idx,"presentacion",val)} style={{padding:"8px 4px",border:`2px solid ${item.presentacion===val?"#1a5c2e":"#e5e7eb"}`,borderRadius:8,background:item.presentacion===val?"#f0fdf4":"white",color:item.presentacion===val?"#1a5c2e":"#374151",fontWeight:item.presentacion===val?700:400,cursor:"pointer",fontSize:12}}>
-                      {label}
+                    <button key={key} onClick={()=>upd(idx,"presentacion",val)} style={{padding:"8px 4px",border:`2px solid ${item.presentacion===val?D.blue:D.border}`,borderRadius:8,background:item.presentacion===val?`${D.blue}18`:D.bgCard2,color:item.presentacion===val?D.text:D.textSoft,fontWeight:item.presentacion===val?700:400,cursor:"pointer",fontSize:12}}>
+                      {key==="unidad"?"Unidad":key==="caja"?"Caja (x20)":"Bolsa (x20)"}
                     </button>
                   ))}
                 </div>
@@ -1442,7 +1441,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
               const p=calcularPrecioItem(item,insumos,precios);
               if (!mat&&!p) return null;
               return (
-                <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:12,color:"#22c55e"}}>
+                <div style={{background:"#0d2818",borderRadius:8,padding:"8px 10px",fontSize:12,color:"#22c55e",border:"1px solid #166534"}}>
                   {mat&&<div>📐 Material: <b>{mmToM(mat.perfilMm*(item.presentacion?item.cantidad*20:item.cantidad))}m</b> perfil{mat.imanMm>0?<> + <b>{mmToM(mat.imanMm*(item.presentacion?item.cantidad*20:item.cantidad))}m</b> imán</>:""}</div>}
                   {p&&<div style={{marginTop:2}}>💰 Precio: <b>{formatPesos(p.precioVenta)}</b></div>}
                 </div>
@@ -1511,11 +1510,11 @@ function ConfigInsumos({ insumos, onUpdateInsumo, onAddInsumo, onDeleteInsumo })
 
   if (editando) return (
     <div>
-      <button onClick={()=>setEditando(null)} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <button onClick={()=>setEditando(null)} style={{background:"none",border:"none",color:D.blue,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
       <div style={G.card}>
-        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{editando.nuevo?"➕ Agregar":"✏️ Editar"} insumo</div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16,color:D.text}}>{editando.nuevo?"Agregar":"Editar"} insumo</div>
         <label style={G.lbl}>Código</label>
-        <input style={{...G.inp,background:editando.nuevo?"white":"#f9fafb",color:editando.nuevo?"#111":"#9ca3af"}} value={form.id||""} onChange={e=>setForm(f=>({...f,id:e.target.value}))} readOnly={!editando.nuevo}/>
+        <input style={{...G.inp,background:D.bgCard2,color:editando.nuevo?D.text:D.textSoft,opacity:editando.nuevo?1:0.6}} value={form.id||""} onChange={e=>setForm(f=>({...f,id:e.target.value}))} readOnly={!editando.nuevo}/>
         <label style={G.lbl}>Descripción</label>
         <input style={G.inp} value={form.descripcion||""} onChange={e=>setForm(f=>({...f,descripcion:e.target.value}))}/>
         <label style={G.lbl}>Tipo</label>
@@ -1548,18 +1547,18 @@ function ConfigInsumos({ insumos, onUpdateInsumo, onAddInsumo, onDeleteInsumo })
         <div key={item.id} style={{...G.card,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13,color:"#e6edf3"}}>{item.descripcion}</div><div style={{fontSize:11,color:D.textSoft}}>{item.id} · {item.proveedor}</div></div>
           <div style={{display:"flex",gap:8,marginLeft:10}}>
-            <button onClick={()=>{setEditando({id:item.id});setForm({...item});}} style={{background:"#0d2818",border:"1px solid #166534",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#1a5c2e",cursor:"pointer"}}>✏️</button>
+            <button onClick={()=>{setEditando({id:item.id});setForm({...item});}} style={{background:D.bgCard2,border:`1px solid ${D.border}`,borderRadius:8,padding:"6px 10px",fontSize:13,color:D.textSoft,cursor:"pointer"}}>Ed.</button>
             <button onClick={()=>setConfirmDel({id:item.id,nombre:item.descripcion})} style={{background:"#2d1515",border:"1px solid #7f1d1d",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#f87171",cursor:"pointer"}}>🗑️</button>
           </div>
         </div>
       ))}
       {confirmDel&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
-          <div style={{background:"white",borderRadius:16,padding:24,maxWidth:320,width:"100%"}}>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>¿Eliminar?</div>
-            <div style={{fontSize:14,color:D.textSoft,marginBottom:20}}>Se eliminará <b>{confirmDel.nombre}</b>.</div>
+          <div style={{background:D.bgCard,borderRadius:16,padding:24,maxWidth:320,width:"100%",border:`1px solid ${D.border}`}}>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:8,color:D.text}}>¿Eliminar?</div>
+            <div style={{fontSize:14,color:D.textSoft,marginBottom:20}}>Se eliminará <b style={{color:D.text}}>{confirmDel.nombre}</b>.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <button onClick={()=>setConfirmDel(null)} style={{padding:"11px",border:"1px solid #30363d",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+              <button onClick={()=>setConfirmDel(null)} style={{padding:"11px",border:`1px solid ${D.border}`,borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14,background:"transparent",color:D.textSoft}}>Cancelar</button>
               <button onClick={()=>{onDeleteInsumo(confirmDel.id);setConfirmDel(null);}} style={{padding:"11px",background:"#ef4444",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Eliminar</button>
             </div>
           </div>
@@ -1675,13 +1674,13 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
   }).filter(Boolean))].sort((a,b) => b-a);
   if (!aniosDisponibles.includes(anio) && aniosDisponibles.length > 0) aniosDisponibles.unshift(anio);
 
-  const colores = ["#1a5c2e","#2d8a4e","#3b82f6","#f59e0b","#8b5cf6","#ef4444"];
+  const colores = [D.blue,"#16a34a","#8b5cf6","#f59e0b","#22c55e","#f87171"];
 
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div style={...G.secTitle,color:"#e6edf3"}>📈 Estadísticas</div>
-        <select style={{border:"1px solid #30363d",borderRadius:8,padding:"6px 10px",fontSize:14,background:"white",outline:"none"}} value={anio} onChange={e=>setAnio(Number(e.target.value))}>
+        <select style={{border:`1px solid ${D.border}`,borderRadius:8,padding:"6px 10px",fontSize:14,background:D.bgCard2,color:D.text,outline:"none"}} value={anio} onChange={e=>setAnio(Number(e.target.value))}>
           {(aniosDisponibles.length>0?aniosDisponibles:[new Date().getFullYear()]).map(a=><option key={a} value={a}>{a}</option>)}
         </select>
       </div>
@@ -1689,7 +1688,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
       {/* Resumen del año */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:16}}>
         {[
-          {label:"Ventas del año",   value:formatPesos(totalAnio), color:"#1a5c2e", icon:"💰"},
+          {label:"Ventas del año",   value:formatPesos(totalAnio), color:D.greenSoft},
           {label:"Pedidos entregados", value:ventasPorMes.reduce((a,m)=>a+m.cantidad,0), color:"#3b82f6", icon:"📦"},
           {label:"Margen real",      value:`${margenReal}%`, color:"#8b5cf6", icon:"📊"},
           {label:"Ticket promedio",  value:ventasPorMes.reduce((a,m)=>a+m.cantidad,0)>0?formatPesos(totalAnio/ventasPorMes.reduce((a,m)=>a+m.cantidad,0)):"—", color:"#f59e0b", icon:"🎫"},
@@ -1717,7 +1716,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
               {ventasPorMes.map((m,i)=>(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                   <div style={{fontSize:10,color:D.textSoft,fontWeight:600}}>{m.total>0?formatPesos(m.total):""}</div>
-                  <div style={{width:"100%",background:m.total>0?"#1a5c2e":"#f3f4f6",borderRadius:"4px 4px 0 0",height:`${Math.max(4,(m.total/maxVenta)*120)}px`,position:"relative",transition:"height 0.3s"}}>
+                  <div style={{width:"100%",background:m.total>0?"#16a34a":D.bgCard2,borderRadius:"4px 4px 0 0",height:`${Math.max(4,(m.total/maxVenta)*120)}px`,position:"relative",transition:"height 0.3s"}}>
                     {m.cantidad>0&&<div style={{position:"absolute",top:-18,left:"50%",transform:"translateX(-50%)",fontSize:9,color:D.textSoft,whiteSpace:"nowrap"}}>{m.cantidad} ped.</div>}
                   </div>
                   <div style={{fontSize:10,color:D.textSoft,fontWeight:600}}>{m.mes}</div>
@@ -1741,7 +1740,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
                   <span style={{fontSize:11,color:D.textSoft,marginLeft:8}}>{data.cantidad} uds</span>
                 </div>
               </div>
-              <div style={{background:"#f3f4f6",borderRadius:4,height:6}}>
+              <div style={{background:D.bgCard2,borderRadius:4,height:6}}>
                 <div style={{width:`${(data.total/Math.max(...Object.values(porTipo).map(d=>d.total)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
               </div>
             </div>
@@ -1759,7 +1758,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
                 <span style={{fontWeight:600}}>{apl}</span>
                 <span style={{color:D.textSoft}}>{cant} productos</span>
               </div>
-              <div style={{background:"#f3f4f6",borderRadius:4,height:6}}>
+              <div style={{background:D.bgCard2,borderRadius:4,height:6}}>
                 <div style={{width:`${(cant/Math.max(...Object.values(porAplicacion)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
               </div>
             </div>
@@ -1778,7 +1777,7 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
                 <div style={{fontWeight:600,fontSize:13}}>{nombre}</div>
                 <div style={{fontSize:11,color:D.textSoft}}>{data.pedidos} pedido{data.pedidos!==1?"s":""}</div>
               </div>
-              <div style={{fontWeight:700,color:"#1a5c2e",fontSize:14}}>{formatPesos(data.total)}</div>
+              <div style={{fontWeight:700,color:D.greenSoft,fontSize:14}}>{formatPesos(data.total)}</div>
             </div>
           ))}
         </div>
@@ -1853,9 +1852,9 @@ function UsuariosTab({ usuarioActual }) {
 
   if (editando) return (
     <div>
-      <button onClick={()=>{setEditando(null);setForm({});setError("");}} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <button onClick={()=>{setEditando(null);setForm({});setError("");}} style={{background:"none",border:"none",color:D.blue,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
       <div style={G.card}>
-        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>➕ Nuevo usuario</div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16,color:D.text}}>Nuevo usuario</div>
         <label style={G.lbl}>Nombre completo *</label>
         <input style={G.inp} value={form.nombre||""} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Juan López"/>
         <label style={G.lbl}>Email *</label>
@@ -1864,8 +1863,8 @@ function UsuariosTab({ usuarioActual }) {
         <input type="password" style={G.inp} value={form.password||""} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Mínimo 6 caracteres"/>
         <label style={G.lbl}>Rol</label>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          {[["equipo","👷 Equipo"],["admin","⭐ Administrador"]].map(([val,label])=>(
-            <button key={val} onClick={()=>setForm(f=>({...f,rol:val}))} style={{padding:"10px",border:`2px solid ${(form.rol||"equipo")===val?"#1a5c2e":"#e5e7eb"}`,borderRadius:8,background:(form.rol||"equipo")===val?"#f0fdf4":"white",color:(form.rol||"equipo")===val?"#1a5c2e":"#374151",fontWeight:(form.rol||"equipo")===val?700:400,cursor:"pointer",fontSize:13}}>
+          {[["equipo","Equipo"],["admin","Administrador"]].map(([val,label])=>(
+            <button key={val} onClick={()=>setForm(f=>({...f,rol:val}))} style={{padding:"10px",border:`2px solid ${(form.rol||"equipo")===val?D.blue:D.border}`,borderRadius:8,background:(form.rol||"equipo")===val?`${D.blue}18`:D.bgCard2,color:(form.rol||"equipo")===val?D.text:D.textSoft,fontWeight:(form.rol||"equipo")===val?700:400,cursor:"pointer",fontSize:13}}>
               {label}
             </button>
           ))}
@@ -1898,19 +1897,19 @@ function UsuariosTab({ usuarioActual }) {
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <div style={{fontWeight:700,fontSize:14,color:"#e6edf3"}}>{u.nombre}</div>
-                  {u.id===usuarioActual.id&&<span style={{background:"#dbeafe",color:"#1e40af",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Vos</span>}
-                  <span style={{background:u.rol==="admin"?"#fef9c3":"#f0fdf4",color:u.rol==="admin"?"#854d0e":"#166534",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>{u.rol==="admin"?"⭐ Admin":"👷 Equipo"}</span>
+                  {u.id===usuarioActual.id&&<span style={{background:`${D.blue}22`,color:D.blue,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>Vos</span>}
+                  <span style={{background:u.rol==="admin"?`${D.yellow}18`:`${D.green}18`,color:u.rol==="admin"?D.yellow:D.greenSoft,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>{u.rol==="admin"?"Admin":"Equipo"}</span>
                 </div>
                 <div style={{fontSize:12,color:D.textSoft,marginTop:2}}>{u.email}</div>
                 <div style={{fontSize:11,color:u.activo?"#22c55e":"#ef4444",marginTop:2,fontWeight:600}}>{u.activo?"● Activo":"● Inactivo"}</div>
               </div>
               {u.id!==usuarioActual.id&&(
                 <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end",marginLeft:10}}>
-                  <select value={u.rol} onChange={e=>cambiarRol(u,e.target.value)} style={{border:"1px solid #30363d",borderRadius:8,padding:"4px 8px",fontSize:12,background:"white",cursor:"pointer"}}>
+                  <select value={u.rol} onChange={e=>cambiarRol(u,e.target.value)} style={{border:`1px solid ${D.border}`,borderRadius:8,padding:"4px 8px",fontSize:12,background:D.bgCard2,color:D.text,cursor:"pointer"}}>
                     <option value="equipo">Equipo</option>
                     <option value="admin">Admin</option>
                   </select>
-                  <button onClick={()=>toggleActivo(u)} style={{background:u.activo?"#fff1f2":"#f0fdf4",border:`1px solid ${u.activo?"#fecdd3":"#bbf7d0"}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:u.activo?"#be123c":"#166534",cursor:"pointer",fontWeight:600}}>
+                  <button onClick={()=>toggleActivo(u)} style={{background:u.activo?"#2d1515":"#0d2818",border:`1px solid ${u.activo?"#7f1d1d":"#166534"}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:u.activo?"#f87171":"#22c55e",cursor:"pointer",fontWeight:600}}>
                     {u.activo?"Desactivar":"Activar"}
                   </button>
                 </div>
@@ -1967,9 +1966,9 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
 
   if (modal) return (
     <div>
-      <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:"#1a5c2e",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
+      <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:D.blue,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:16,padding:0}}>← Volver</button>
       <div style={G.card}>
-        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{modal==="nuevo"?"➕ Agregar producto":"✏️ Editar producto"}</div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16,color:D.text}}>{modal==="nuevo"?"Agregar producto":"Editar producto"}</div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           <div>
@@ -2026,7 +2025,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
       {/* Resumen */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
         {[
-          {label:"Total en stock", value:totalProductos, color:"#1a5c2e", icon:"📦"},
+          {label:"Total en stock", value:totalProductos, color:D.greenSoft},
           {label:"Sin stock",      value:sinStock,       color:sinStock>0?"#ef4444":"#22c55e", icon:"❌"},
           {label:"Stock bajo",     value:bajosStock,     color:bajosStock>0?"#f59e0b":"#22c55e", icon:"⚠️"},
         ].map((c,i)=>(
@@ -2071,7 +2070,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                       {/* Botones rápidos +/- */}
-                      <button onClick={()=>onActualizar(p.id,{stock:p.stock+1})} style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:6,padding:"4px 8px",fontSize:14,cursor:"pointer",color:"#22c55e",fontWeight:700}}>+</button>
+                      <button onClick={()=>onActualizar(p.id,{stock:p.stock+1})} style={{background:"#0d2818",border:"1px solid #166534",borderRadius:6,padding:"4px 8px",fontSize:14,cursor:"pointer",color:"#22c55e",fontWeight:700}}>+</button>
                       <button onClick={()=>p.stock>0&&onActualizar(p.id,{stock:p.stock-1})} style={{background:"#2d1515",border:"1px solid #7f1d1d",borderRadius:6,padding:"4px 8px",fontSize:14,cursor:"pointer",color:"#f87171",fontWeight:700}}>-</button>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
@@ -2088,11 +2087,11 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
 
       {confirmDel&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
-          <div style={{background:"white",borderRadius:16,padding:24,maxWidth:320,width:"100%"}}>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>¿Eliminar?</div>
-            <div style={{fontSize:14,color:D.textSoft,marginBottom:20}}>Se eliminará <b>{confirmDel.nombre}</b> del stock.</div>
+          <div style={{background:D.bgCard,borderRadius:16,padding:24,maxWidth:320,width:"100%",border:`1px solid ${D.border}`}}>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:8,color:D.text}}>¿Eliminar?</div>
+            <div style={{fontSize:14,color:D.textSoft,marginBottom:20}}>Se eliminará <b style={{color:D.text}}>{confirmDel.nombre}</b> del stock.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <button onClick={()=>setConfirmDel(null)} style={{padding:"11px",border:"1px solid #30363d",borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14}}>Cancelar</button>
+              <button onClick={()=>setConfirmDel(null)} style={{padding:"11px",border:`1px solid ${D.border}`,borderRadius:10,fontWeight:600,cursor:"pointer",fontSize:14,background:"transparent",color:D.textSoft}}>Cancelar</button>
               <button onClick={()=>{onEliminar(confirmDel.id);setConfirmDel(null);}} style={{padding:"11px",background:"#ef4444",color:"white",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>Eliminar</button>
             </div>
           </div>
