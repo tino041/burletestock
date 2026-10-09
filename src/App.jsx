@@ -161,14 +161,14 @@ const INITIAL_CLIENTES = [
 
 const INITIAL_PEDIDOS = [
   { id:"PED-001", fecha:"12/06/2026", clienteId:"CLI-001", cliente:"Servicio Técnico Martínez", telefono:"11-4523-9900", transporte:"Andreani", descuento:0, via:"Teléfono", estado:"entregado", obs:"",
-    items:[{ id:1, tipoProducto:"Marco", aplicacion:"Heladera", perfilId:"PER-001", imanId:"IMA-001", ancho:600, alto:800, largo:null, cantidad:2, presentacion:null, descripcion:"Marco Heladera 600×800mm" }] },
+    items:[{ id:1, tipoProducto:"Marco", aplicacion:"BOSCH", perfilId:"PER-001", imanId:"IMA-001", ancho:600, alto:800, largo:null, cantidad:2, presentacion:null, descripcion:"Marco Heladera 600×800mm" }] },
   { id:"PED-002", fecha:"16/06/2026", clienteId:"CLI-002", cliente:"Frigorífico El Sur", telefono:"11-3345-7711", transporte:"OCA", descuento:10, via:"Mail", estado:"pendiente", obs:"Para el viernes",
     items:[
-      { id:1, tipoProducto:"Marco", aplicacion:"Cámara frigorífica", perfilId:"PER-002", imanId:"IMA-002", ancho:1000, alto:2000, largo:null, cantidad:1, presentacion:null, descripcion:"Marco Cámara 1000×2000mm" },
+      { id:1, tipoProducto:"Marco", aplicacion:"DOBLE BALON", perfilId:"PER-002", imanId:"IMA-002", ancho:1000, alto:2000, largo:null, cantidad:1, presentacion:null, descripcion:"Marco Cámara 1000×2000mm" },
       { id:2, tipoProducto:"Manguera", aplicacion:null, perfilId:"MAN-001", imanId:null, ancho:null, alto:null, largo:3000, cantidad:2, presentacion:null, descripcion:"Manguera PVC 8mm - 3000mm" },
     ]},
   { id:"PED-003", fecha:"18/06/2026", clienteId:"CLI-003", cliente:"Reparaciones López", telefono:"11-6677-2200", transporte:"Retira en local", descuento:5, via:"Teléfono", estado:"en fabricacion", obs:"Urgente",
-    items:[{ id:1, tipoProducto:"Angulo", aplicacion:"Freezer", perfilId:"PER-001", imanId:"IMA-001", ancho:400, alto:600, largo:null, cantidad:2, presentacion:"caja", descripcion:"Ángulo Freezer 400×600mm (caja x20)" }] },
+    items:[{ id:1, tipoProducto:"Angulo", aplicacion:"SOFT", perfilId:"PER-001", imanId:"IMA-001", ancho:400, alto:600, largo:null, cantidad:2, presentacion:"caja", descripcion:"Ángulo Freezer 400×600mm (caja x20)" }] },
 ];
 
 const INITIAL_MOVIMIENTOS = [
@@ -215,7 +215,7 @@ const G = {
 };
 
 const TIPOS       = ["Marco","Burlete","Angulo","Tira","Manguera"];
-const APLICACIONES= ["Heladera","Freezer","Exhibidora","Cámara frigorífica"];
+const APLICACIONES= ["BOSCH","SOFT","DOBLE BALON","SOFT CON ALETA Y PRESION"];
 const TRANSPORTES = ["Andreani","OCA","Correo Argentino","Retira en local","Otro"];
 export default function App() {
   const [usuario, setUsuario] = useState(null);
@@ -1372,7 +1372,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
   const [obs,         setObs]         = useState("");
   const [items,       setItems]       = useState([newItem()]);
 
-  function newItem() { return {id:Date.now(),tipoProducto:"Marco",aplicacion:"Heladera",perfilId:"",imanId:"",ancho:"",alto:"",largo:"",cantidad:1,presentacion:null}; }
+  function newItem() { return {id:Date.now(),tipoProducto:"Marco",aplicacion:"BOSCH",perfilId:"",imanId:"",ancho:"",alto:"",largo:"",cantidad:1,presentacion:null}; }
 
   function buildDesc(item) {
     const pres=item.presentacion?` (${item.presentacion} x20)`:"";
@@ -1426,7 +1426,7 @@ function NuevoPedidoModal({ insumos, clientes, clientePrefill, precios, onConfir
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               <div><label style={G.lbl}>Tipo</label><select style={G.inp} value={item.tipoProducto} onChange={e=>upd(idx,"tipoProducto",e.target.value)}>{TIPOS.map(t=><option key={t}>{t}</option>)}</select></div>
-              {item.tipoProducto!=="Manguera"&&<div><label style={G.lbl}>Aplicación</label><select style={G.inp} value={item.aplicacion} onChange={e=>upd(idx,"aplicacion",e.target.value)}>{APLICACIONES.map(a=><option key={a}>{a}</option>)}</select></div>}
+              {item.tipoProducto!=="Manguera"&&<div><label style={G.lbl}>Tipo</label><select style={G.inp} value={item.aplicacion} onChange={e=>upd(idx,"aplicacion",e.target.value)}>{APLICACIONES.map(a=><option key={a}>{a}</option>)}</select></div>}
             </div>
             {["Marco","Burlete","Angulo"].includes(item.tipoProducto)&&(
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1648,16 +1648,16 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
     });
   });
 
-  // Aplicaciones más vendidas
-  const porAplicacion = {};
+  // Tipos más vendidos
+  const porTipo = {};
   entregados.filter(p => {
     const my = getMonthYear(p.fechaEntrega);
     return my && my.anio === anio;
   }).forEach(p => {
     p.items.forEach(item => {
       const a = item.aplicacion || "Manguera";
-      if (!porAplicacion[a]) porAplicacion[a] = 0;
-      porAplicacion[a]++;
+      if (!porTipo[a]) porTipo[a] = 0;
+      porTipo[a]++;
     });
   });
 
@@ -1771,17 +1771,17 @@ function EstadisticasTab({ pedidos, insumos, precios, clientes }) {
       )}
 
       {/* Por aplicación */}
-      {Object.keys(porAplicacion).length > 0 && (
+      {Object.keys(porTipo).length > 0 && (
         <div style={G.card}>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:D.text}}>🏭 Por aplicación</div>
-          {Object.entries(porAplicacion).sort((a,b)=>b[1]-a[1]).map(([apl,cant],i)=>(
+          <div style={{fontWeight:700,fontSize:14,marginBottom:14,color:D.text}}>Por tipo</div>
+          {Object.entries(porTipo).sort((a,b)=>b[1]-a[1]).map(([apl,cant],i)=>(
             <div key={apl} style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
                 <span style={{fontWeight:600}}>{apl}</span>
                 <span style={{color:D.textSoft}}>{cant} productos</span>
               </div>
               <div style={{background:D.bgCard2,borderRadius:4,height:6}}>
-                <div style={{width:`${(cant/Math.max(...Object.values(porAplicacion)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
+                <div style={{width:`${(cant/Math.max(...Object.values(porTipo)))*100}%`,background:colores[i%colores.length],height:6,borderRadius:4}}/>
               </div>
             </div>
           ))}
@@ -1956,7 +1956,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
   const COLORES = ["Gris", "Negro", "Blanco", "Marrón", "Beige", "Otro"];
 
   function abrirNuevo() {
-    setForm({ tipo:"Marco", aplicacion:"Heladera", ancho:"", alto:"", largo:"", color:"Gris", stock:0, minimo:2 });
+    setForm({ tipo:"Marco", aplicacion:"BOSCH", ancho:"", alto:"", largo:"", color:"Gris", stock:0, minimo:2 });
     setModal("nuevo");
   }
 
@@ -2001,7 +2001,7 @@ function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
           </div>
           {form.tipo!=="Manguera"&&(
             <div>
-              <label style={lbl}>Aplicación</label>
+              <label style={lbl}>Tipo</label>
               <select style={inp} value={form.aplicacion||""} onChange={e=>setForm(f=>({...f,aplicacion:e.target.value}))}>
                 {APLICACIONES.map(a=><option key={a}>{a}</option>)}
               </select>
