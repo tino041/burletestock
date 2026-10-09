@@ -377,7 +377,7 @@ function AppMain({ usuario, onLogout }) {
     const updated = {...ins,...changes};
     setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
     try { await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`); }
-    catch(e) { toast("❌ Error al guardar insumo","error"); console.error(e); }
+    catch(e) { toast("Error al guardar insumo","error"); console.error(e); }
   }
 
   async function agregarMovimientoDb(mov) {
@@ -911,10 +911,21 @@ function AppMain({ usuario, onLogout }) {
           {/* CLIENTES */}
           {tab==="clientes"&&<ClientesTab clientes={clientes}
             onGuardarCliente={async(cli, esNuevo)=>{
-              if (esNuevo) { setClientes(prev=>[...prev,cli]); try { await sb("clientes","POST",clienteToDb(cli)); toast("Cliente guardado ✓"); } catch(e) { toast("❌ Error al guardar cliente","error"); } }
-              else { setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c)); try { await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); toast("Cliente actualizado ✓"); } catch(e) { toast("❌ Error al actualizar cliente","error"); } }
+              if (esNuevo) {
+                setClientes(prev=>[...prev,cli]);
+                try { await sb("clientes","POST",clienteToDb(cli)); toast("Cliente guardado OK"); }
+                catch(e) { toast("Error al guardar cliente","error"); }
+              } else {
+                setClientes(prev=>prev.map(c=>c.id===cli.id?cli:c));
+                try { await sb("clientes","PATCH",clienteToDb(cli),`?id=eq.${cli.id}`); toast("Cliente actualizado OK"); }
+                catch(e) { toast("Error al actualizar cliente","error"); }
+              }
             }}
-            onEliminarCliente={async id=>{ setClientes(prev=>prev.filter(c=>c.id!==id)); try { await sb("clientes","DELETE",null,`?id=eq.${id}`); toast("Cliente eliminado","warn"); } catch(e) { toast("❌ Error al eliminar","error"); } }}
+            onEliminarCliente={async id=>{
+              setClientes(prev=>prev.filter(c=>c.id!==id));
+              try { await sb("clientes","DELETE",null,`?id=eq.${id}`); toast("Cliente eliminado","warn"); }
+              catch(e) { toast("Error al eliminar","error"); }
+            }}
             onNuevoPedido={c=>setModal({tipo:"nuevoPedido",clientePrefill:c})}
           />}
 
@@ -1085,18 +1096,30 @@ function AppMain({ usuario, onLogout }) {
               const ins=insumos.find(i=>i.id===id);
               const updated={...ins,...ch};
               setInsumos(prev=>prev.map(i=>i.id===id?updated:i));
-              try { await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`); toast("Insumo actualizado ✓"); }
-              catch(e) { toast("❌ Error al guardar insumo","error"); }
+              try {
+                await sb("insumos","PATCH",insumoToDb(updated),`?id=eq.${id}`);
+                toast("Insumo actualizado OK");
+              } catch(e) {
+                toast("Error al guardar insumo","error");
+              }
             }}
             onAddInsumo={async item=>{
               setInsumos(prev=>[...prev,item]);
-              try { await sb("insumos","POST",insumoToDb(item)); toast("Insumo agregado ✓"); }
-              catch(e) { toast("❌ Error al agregar insumo","error"); }
+              try {
+                await sb("insumos","POST",insumoToDb(item));
+                toast("Insumo agregado OK");
+              } catch(e) {
+                toast("Error al agregar insumo","error");
+              }
             }}
             onDeleteInsumo={async id=>{
               setInsumos(prev=>prev.filter(i=>i.id!==id));
-              try { await sb("insumos","DELETE",null,`?id=eq.${id}`); toast("Insumo eliminado","warn"); }
-              catch(e) { toast("❌ Error al eliminar","error"); }
+              try {
+                await sb("insumos","DELETE",null,`?id=eq.${id}`);
+                toast("Insumo eliminado","warn");
+              } catch(e) {
+                toast("Error al eliminar","error");
+              }
             }}
           />}
 
