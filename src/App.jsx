@@ -42,9 +42,18 @@ async function getUsuario(email) {
   return data?.[0] || null;
 }
 
-// Session helpers — solo sessionStorage (se borra al cerrar la pestaña/app)
-function saveSession(user) { try { sessionStorage.setItem("bs_user", JSON.stringify(user)); } catch(e){} }
-function loadSession() { try { const s = sessionStorage.getItem("bs_user"); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+// Session helpers — expira a las 9 horas, se borra al cerrar la pestaña/app
+const SESSION_HOURS = 9;
+function saveSession(user) { try { sessionStorage.setItem("bs_user", JSON.stringify({...user, _exp: Date.now() + SESSION_HOURS*60*60*1000})); } catch(e){} }
+function loadSession() {
+  try {
+    const s = sessionStorage.getItem("bs_user");
+    if (!s) return null;
+    const data = JSON.parse(s);
+    if (data._exp && Date.now() > data._exp) { sessionStorage.removeItem("bs_user"); return null; }
+    return data;
+  } catch(e){ return null; }
+}
 function clearSession() { try { sessionStorage.removeItem("bs_user"); } catch(e){} }
 
 // Mapeo entre formato app ↔ Supabase
@@ -225,6 +234,12 @@ export default function App() {
     const session = loadSession();
     if (session) setUsuario(session);
     setAuthCargando(false);
+    // Chequear expiración cada 5 minutos
+    const interval = setInterval(()=>{
+      const s = loadSession();
+      if (!s) setUsuario(null);
+    }, 5*60*1000);
+    return ()=>clearInterval(interval);
   },[]);
 
   function handleLogin(user) {
@@ -301,6 +316,7 @@ function LoginScreen({ onLogin }) {
 // ── APP MAIN ──────────────────────────────────────────────
 function AppMain({ usuario, onLogout }) {
   const esAdmin = usuario.rol === "admin";
+  const esOperario = usuario.rol === "operario" || usuario.rol === "equipo";
   const [tab, setTab]           = useState(esAdmin ? "dashboard" : "pedidos");
   const [insumos, setInsumos]   = useState(INITIAL_INSUMOS);
   const [clientes, setClientes] = useState(INITIAL_CLIENTES);
@@ -710,9 +726,7 @@ function AppMain({ usuario, onLogout }) {
     ...(esAdmin ? [
       {id:"precios",      label:"Precios"},
       {id:"estadisticas", label:"Estadísticas"},
-    ] : []),
-    {id:"movimientos",  label:"Historial"},
-    ...(esAdmin ? [
+      {id:"movimientos",  label:"Historial"},
       {id:"ia",      label:"IA"},
       {id:"usuarios",label:"Usuarios"},
       {id:"config",  label:"Config"},
@@ -932,6 +946,7 @@ function AppMain({ usuario, onLogout }) {
           {/* STOCK PRODUCTOS TERMINADOS */}
           {tab==="stock"&&(
             <StockProductosTab
+              esAdmin={esAdmin}
               productos={productosTerminados}
               onAgregar={async p=>{
                 const id=`PT-${String(Date.now()).slice(-6)}`;
@@ -1852,7 +1867,7 @@ function UsuariosTab({ usuarioActual }) {
       if (!res2.ok) { setError("Error al crear el usuario. Verificá el email."); setCargando(false); return; }
     }
     // Guardar en tabla usuarios
-    const nuevo = { email:form.email, nombre:form.nombre, rol:form.rol||"equipo", activo:true };
+    const nuevo = { email:form.email, nombre:form.nombre, rol:form.rol||"operario", activo:true };
     await sb("usuarios","POST",nuevo);
     const data = await sb("usuarios","GET",null,"?order=nombre");
     if (data) setUsuarios(data);
@@ -1885,7 +1900,7 @@ function UsuariosTab({ usuarioActual }) {
         <input type="password" style={G.inp} value={form.password||""} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Mínimo 6 caracteres"/>
         <label style={G.lbl}>Rol</label>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          {[["equipo","Equipo"],["admin","Administrador"]].map(([val,label])=>(
+          {[["operario","Operario"],["admin","Administrador"]].map(([val,label])=>(
             <button key={val} onClick={()=>setForm(f=>({...f,rol:val}))} style={{padding:"10px",border:`2px solid ${(form.rol||"equipo")===val?D.blue:D.border}`,borderRadius:8,background:(form.rol||"equipo")===val?`${D.blue}18`:D.bgCard2,color:(form.rol||"equipo")===val?D.text:D.textSoft,fontWeight:(form.rol||"equipo")===val?700:400,cursor:"pointer",fontSize:13}}>
               {label}
             </button>
@@ -1929,6 +1944,7 @@ function UsuariosTab({ usuarioActual }) {
                 <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end",marginLeft:10}}>
                   <select value={u.rol} onChange={e=>cambiarRol(u,e.target.value)} style={{border:`1px solid ${D.border}`,borderRadius:8,padding:"4px 8px",fontSize:12,background:D.bgCard2,color:D.text,cursor:"pointer"}}>
                     <option value="equipo">Equipo</option>
+                    <option value="operario">Operario</option>
                     <option value="admin">Admin</option>
                   </select>
                   <button onClick={()=>toggleActivo(u)} style={{background:u.activo?"#2d1515":"#0d2818",border:`1px solid ${u.activo?"#7f1d1d":"#166534"}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:u.activo?"#f87171":"#22c55e",cursor:"pointer",fontWeight:600}}>
@@ -1948,12 +1964,12 @@ function UsuariosTab({ usuarioActual }) {
 }
 
 // ── STOCK PRODUCTOS TERMINADOS ────────────────────────────
-function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar }) {
+function StockProductosTab({ productos, onAgregar, onActualizar, onEliminar, esAdmin=true }) {
   const [modal, setModal] = useState(null);
   const [form, setForm]   = useState({});
   const [confirmDel, setConfirmDel] = useState(null);
 
-  const COLORES = ["Gris", "Negro", "Blanco", "Marrón", "Beige", "Otro"];
+  const COLORES = ["Gris", "Negro", "Blanco", "Marrón", "Otro"];
 
   function abrirNuevo() {
     setForm({ tipo:"Marco", aplicacion:"BOSCH", ancho:"", alto:"", largo:"", color:"Gris", stock:0, minimo:2 });
